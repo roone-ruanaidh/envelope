@@ -7,7 +7,7 @@ It begins when desired work is expressed as an executable acceptance contract, t
 Broad outcome intent is not automatically an acceptance contract. Envelope must never silently invent, weaken, or claim measurability for one. 
 A condition remains unresolved until its settlement rule and required evidence are explicit.
 
-## Economic object
+## Economics
 
 Per-token pricing measures an input, not the price of a realized output.
 
@@ -30,7 +30,7 @@ declared order
 The desired output remains partly unknown.
 The mathematical kernel's role is to stabilize what `accepted` means across runs—not to turn empirical evidence, human judgment, or assumptions into proof.
 
-## System direction
+## Direction
 
 Envelope's current target is an open economic control plane for probabilistic computation.
 Given an operational acceptance contract, reliability target, hard constraints, and accounting boundary, it should return an evidence-backed feasible frontier, an admissible plan, or a structured infeasibility result.
@@ -44,8 +44,6 @@ The provisional language boundary is:
 - **Lean** for the normative mathematical and epistemic kernel: admissibility, constraint preservation, proof boundaries, and settlement properties that can actually be proven;
 - **Rust** for the stateful systems layer: orchestration, execution, adapters, evidence collection, storage, concurrency, identity, and deployment;
 - **Python** as an early SDK and research interface because of its AI ecosystem and ergonomics, not as a settled trusted-core dependency.
-
-No shared Envelope implementation has yet earned promotion. Research is the product-building process.
 
 ## Experiments
 
