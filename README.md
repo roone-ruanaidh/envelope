@@ -1,6 +1,6 @@
 # Envelope
 
-Envelope is an open, local-first system for buying AI work by outcome instead of by token.
+Envelope is an open, local-first system for pricing AI work by outcome instead of by token.
 
 It begins when desired work is expressed as an executable acceptance contract, then assesses feasibility, resolves an evidence-backed computation-and-verification plan with projected cost and uncertainty, and settles the realized computation against the contract.
 
