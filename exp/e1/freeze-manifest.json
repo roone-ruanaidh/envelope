@@ -15,11 +15,11 @@
   },
   "governing_instructions": {
     "path": "../../AGENTS.md",
-    "sha256": "58e7f9f9eb894ef4af000cc88283f06057ea7024b0873671d8699e1f47f04308"
+    "sha256": "f243dd2ed4ccebd2bc437bca45d8b7776da9001d9c8c25e9853baf7d5bde37d0"
   },
   "governing_repository_policy": {
     "path": "../../README.md",
-    "sha256": "fca047afa3826b33ec8c42c7ed3da7d4cd09eebc7151a20e41b0f6c8c69477bc"
+    "sha256": "8665b76a374f398ddce148fa5ebc797c9db7506940b635427a193a1b405f4c0d"
   },
   "approved_decisions": [
     {

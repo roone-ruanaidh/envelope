@@ -1,6 +1,5 @@
 # How to read my requests
-My requests are APPROXIMATE — pointers toward what I actually want: the
-simplest, cleanest, most elegant design.
+My requests are APPROXIMATE — pointers toward what I actually want: the simplest, cleanest, most elegant design.
 That goal ALWAYS outranks my literal words.
 
 When you hit a wall — a case that doesn't fit, a spec that breaks, an assumption that fails — the wall is information: the design is wrong somewhere.
