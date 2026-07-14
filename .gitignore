@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+.typing-venv/
+.mypy_cache/
+.pytest_cache/
+build/

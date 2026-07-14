@@ -1,0 +1,523 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Envelope E1 Lease Job Service",
+    "version": "1.0.0",
+    "description": "Public HTTP contract for the Experiment 1 lease-based job service. Normative behavioral rules are in semantics.v1.md."
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "summary": "Report service readiness",
+        "responses": {
+          "200": {
+            "description": "The service is ready to accept requests.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_evaluator/clock": {
+      "get": {
+        "operationId": "get_clock",
+        "summary": "Read the evaluator clock",
+        "responses": {
+          "200": {
+            "description": "Current logical time.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Clock" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "set_clock",
+        "summary": "Set the evaluator clock to an absolute nondecreasing value",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Clock" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated logical time.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Clock" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/jobs": {
+      "post": {
+        "operationId": "submit_job",
+        "summary": "Submit a job idempotently",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubmitJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exact replay of an existing idempotent submission; returns its current representation.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "201": {
+            "description": "A new job was durably created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/JobId" }
+      ],
+      "get": {
+        "operationId": "get_job",
+        "summary": "Read a job's current normalized state",
+        "responses": {
+          "200": {
+            "description": "Current job representation.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/JobNotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/leases": {
+      "post": {
+        "operationId": "acquire_lease",
+        "summary": "Atomically lease any eligible pending job",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AcquireLeaseRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A lease was acquired.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LeaseGrant" }
+              }
+            }
+          },
+          "204": {
+            "description": "No job was eligible. The response has no body."
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}/heartbeat": {
+      "parameters": [
+        { "$ref": "#/components/parameters/JobId" }
+      ],
+      "post": {
+        "operationId": "heartbeat_lease",
+        "summary": "Renew the current live lease",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/HeartbeatRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The lease was renewed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "404": { "$ref": "#/components/responses/JobNotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}/complete": {
+      "parameters": [
+        { "$ref": "#/components/parameters/JobId" }
+      ],
+      "post": {
+        "operationId": "complete_job",
+        "summary": "Complete a job using its current live lease token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompleteJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The job became succeeded.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "404": { "$ref": "#/components/responses/JobNotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}/fail": {
+      "parameters": [
+        { "$ref": "#/components/parameters/JobId" }
+      ],
+      "post": {
+        "operationId": "fail_job",
+        "summary": "Fail a job using its current live lease token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FailJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The job became failed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/InvalidJson" },
+          "404": { "$ref": "#/components/responses/JobNotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "JobId": {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "description": "UUID text. Input case variants identify the same UUID value.",
+        "schema": { "$ref": "#/components/schemas/UuidInput" }
+      }
+    },
+    "responses": {
+      "Conflict": {
+        "description": "The request conflicts with current durable state.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+          }
+        }
+      },
+      "JobNotFound": {
+        "description": "No job has the supplied UUID.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+          }
+        }
+      },
+      "InvalidJson": {
+        "description": "The request body is not syntactically valid JSON.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "description": "The request Content-Type is not application/json.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "The request does not conform to its declared schema.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "contract_version"],
+        "properties": {
+          "status": { "type": "string", "const": "ok" },
+          "contract_version": { "type": "string", "const": "1.0.0" }
+        }
+      },
+      "Clock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["now_ms"],
+        "properties": {
+          "now_ms": { "$ref": "#/components/schemas/NowMs" }
+        }
+      },
+      "NowMs": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0,
+        "maximum": 9223372036854775807
+      },
+      "TtlMs": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 1,
+        "maximum": 60000
+      },
+      "UuidInput": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
+      },
+      "CanonicalUuid": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      },
+      "LeaseToken": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "IdempotencyKey": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "WorkerId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "Payload": {
+        "type": "string",
+        "minLength": 0,
+        "maxLength": 65536
+      },
+      "Result": {
+        "type": "string",
+        "minLength": 0,
+        "maxLength": 65536
+      },
+      "Failure": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      },
+      "LeaseInfo": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["worker_id", "expires_at_ms"],
+        "properties": {
+          "worker_id": { "$ref": "#/components/schemas/WorkerId" },
+          "expires_at_ms": { "$ref": "#/components/schemas/NowMs" }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "job_id",
+          "idempotency_key",
+          "payload",
+          "state",
+          "lease",
+          "result",
+          "failure"
+        ],
+        "properties": {
+          "job_id": { "$ref": "#/components/schemas/CanonicalUuid" },
+          "idempotency_key": { "$ref": "#/components/schemas/IdempotencyKey" },
+          "payload": { "$ref": "#/components/schemas/Payload" },
+          "state": {
+            "type": "string",
+            "enum": ["pending", "leased", "succeeded", "failed"]
+          },
+          "lease": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/LeaseInfo" },
+              { "type": "null" }
+            ]
+          },
+          "result": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Result" },
+              { "type": "null" }
+            ]
+          },
+          "failure": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Failure" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "SubmitJobRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idempotency_key", "payload"],
+        "properties": {
+          "idempotency_key": { "$ref": "#/components/schemas/IdempotencyKey" },
+          "payload": { "$ref": "#/components/schemas/Payload" }
+        }
+      },
+      "AcquireLeaseRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["worker_id", "ttl_ms"],
+        "properties": {
+          "worker_id": { "$ref": "#/components/schemas/WorkerId" },
+          "ttl_ms": { "$ref": "#/components/schemas/TtlMs" }
+        }
+      },
+      "LeaseGrant": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["job", "lease_token"],
+        "properties": {
+          "job": { "$ref": "#/components/schemas/Job" },
+          "lease_token": { "$ref": "#/components/schemas/LeaseToken" }
+        }
+      },
+      "HeartbeatRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lease_token", "ttl_ms"],
+        "properties": {
+          "lease_token": { "$ref": "#/components/schemas/LeaseToken" },
+          "ttl_ms": { "$ref": "#/components/schemas/TtlMs" }
+        }
+      },
+      "CompleteJobRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lease_token", "result"],
+        "properties": {
+          "lease_token": { "$ref": "#/components/schemas/LeaseToken" },
+          "result": { "$ref": "#/components/schemas/Result" }
+        }
+      },
+      "FailJobRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lease_token", "failure"],
+        "properties": {
+          "lease_token": { "$ref": "#/components/schemas/LeaseToken" },
+          "failure": { "$ref": "#/components/schemas/Failure" }
+        }
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "validation_error",
+              "invalid_json",
+              "unsupported_media_type",
+              "job_not_found",
+              "idempotency_conflict",
+              "lease_not_current",
+              "clock_rewind"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": { "$ref": "#/components/schemas/ErrorDetail" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+model = "gpt-5"
+model_reasoning_effort = "high"
+approval_policy = "never"
+web_search = "disabled"
+default_permissions = "e1"
+
+[features]
+apps = false
+multi_agent = false
+
+[shell_environment_policy]
+include_only = ["HOME", "LANG", "LC_ALL", "PATH", "TERM"]
+
+[permissions.e1.filesystem]
+":minimal" = "read"
+"~/.codex" = "deny"
+
+[permissions.e1.filesystem.":workspace_roots"]
+"." = "write"
+".venv" = "read"
+"public/contract" = "read"
+
+[permissions.e1.network]
+enabled = false

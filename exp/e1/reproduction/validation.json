@@ -1,0 +1,137 @@
+{
+  "authoritative_environment": "ct-ev",
+  "candidate_authoring_boundary": "e1-agent-probe",
+  "candidate_run_performed": false,
+  "contract_version": "1.0.0",
+  "evaluator_version": "0.1.0",
+  "recorded_at_utc": "2026-07-13T21:59:25Z",
+  "repository_path": "/Users/engineer/ws/ev/exp/e1",
+  "prebaseline_observations": [
+    "The first exploratory authoring-boundary probe expected connect denial; Linux Bubblewrap denied socket creation earlier. The probe was corrected, the disposable guest was deleted, and the final checked-in procedure then passed end to end from a fresh guest."
+  ],
+  "runs": [
+    {
+      "command": "cd /Users/engineer/ws/ev/exp/e1 && ./reproduction/prepare-candidate-lima.sh e1-agent-probe",
+      "exit_code": 0,
+      "model_invoked": false,
+      "result": {
+        "candidate_dependencies": "exact public lock installed; pip check passed; environment read-only",
+        "codex_cli": "0.142.5",
+        "codex_permission_profile_sha256": "19b35eab125108413ff6e39ade7ab7b4ec3126fd4c7793a1aa9c1d926601e5de",
+        "command_network": "blocked",
+        "guest_after_probe": "deleted; the frozen run must create a fresh instance",
+        "host_mounts": 0,
+        "host_workspace": "absent",
+        "outside_workspace": "unreadable_and_unwritable",
+        "protected_candidate_paths": "read_only",
+        "public_bundle_hashes": "matched manifest",
+        "workspace": "writable"
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && make verify-evaluator'",
+      "exit_code": 0,
+      "generated_at_utc": "2026-07-13T21:58:31.610779Z",
+      "result": {
+        "mutants_rejected_as_expected": 15,
+        "mutants_total": 15,
+        "reference_durations_ms": [329, 498],
+        "reference_runs_accepted": 2,
+        "reference_runs_total": 2
+      },
+      "mutants": {
+        "abrupt_volatile": {"detector": "graceful_and_abrupt_persistence", "duration_ms": 283, "expected_detail": "after abrupt restart", "layer": "persistence"},
+        "double_claim": {"detector": "concurrent_single_claim", "duration_ms": 5188, "expected_detail": "one pending job produced", "layer": "concurrency"},
+        "drip_response": {"detector": "protocol_and_schema", "duration_ms": 3081, "expected_detail": "absolute request deadline", "layer": "protocol"},
+        "exclusive_expiry": {"detector": "frozen_clock_and_ttl_boundary", "duration_ms": 130, "expected_detail": "claim exactly at expiry", "layer": "temporal"},
+        "ignore_sigterm": {"detector": "graceful_and_abrupt_persistence", "duration_ms": 3310, "expected_detail": "did not exit cleanly", "layer": "persistence"},
+        "non_idempotent": {"detector": "idempotent_submission", "duration_ms": 114, "expected_detail": "expected HTTP 200, got 201", "layer": "idempotency"},
+        "persistent_clock": {"detector": "graceful_and_abrupt_persistence", "duration_ms": 267, "expected_detail": "restore the injected clock", "layer": "persistence"},
+        "racy_idempotency": {"detector": "concurrent_idempotent_replay", "duration_ms": 1482, "expected_detail": "concurrent replay created", "layer": "idempotency"},
+        "renewal_from_expiry": {"detector": "renewal_from_current_time", "duration_ms": 133, "expected_detail": "current clock time", "layer": "temporal"},
+        "schema_extra": {"detector": "protocol_and_schema", "duration_ms": 58, "expected_detail": "undeclared properties", "layer": "protocol"},
+        "signal_exit": {"detector": "graceful_and_abrupt_persistence", "duration_ms": 248, "expected_detail": "did not exit cleanly", "layer": "persistence"},
+        "stale_authority": {"detector": "stale_and_cross_job_authority", "duration_ms": 136, "expected_detail": "stale-holder heartbeat", "layer": "authority"},
+        "stale_replay": {"detector": "idempotent_submission", "duration_ms": 118, "expected_detail": "cached pending representation", "layer": "idempotency"},
+        "volatile": {"detector": "graceful_and_abrupt_persistence", "duration_ms": 342, "expected_detail": "after graceful restart", "layer": "persistence"},
+        "wall_clock_expiry": {"detector": "frozen_clock_and_ttl_boundary", "duration_ms": 121, "expected_detail": "wall time expired a lease", "layer": "temporal"}
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && make verify SERVICE_COMMAND=\"python3 -m evaluator.fixtures.service\"'",
+      "duration_ms": 343,
+      "exit_code": 0,
+      "started_at_utc": "2026-07-13T21:58:39.413829Z",
+      "result": {
+        "layers_passed": ["protocol", "state_model", "idempotency", "temporal", "authority", "concurrency", "persistence", "cleanup"],
+        "tests_passed": 12,
+        "tests_total": 12
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && .typing-venv/bin/python -m mypy --strict --warn-unreachable evaluator/isolated_service.py evaluator/rerun.py evaluator/verify_freeze_manifest.py reproduction/candidate_boundary_probe.py reproduction/isolation_lifecycle_probe.py reproduction/isolation_probe.py reproduction/signal_probe.py'",
+      "exit_code": 0,
+      "result": {
+        "source_files_checked": 7,
+        "strict_control_path_typing": "pass"
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && xargs sudo apt-get install --simulate --no-install-recommends < reproduction/apt-packages.txt'",
+      "exit_code": 0,
+      "result": {
+        "evaluator_package_pins": "all resolved",
+        "package_changes_required": 0
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && python3 -m compileall -q evaluator reproduction'",
+      "exit_code": 0,
+      "result": {"python_compile": "pass"}
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && python3 -c \"import json; from evaluator.schema import assert_contract_alignment; json.load(open(\\\"public/contract/openapi.v1.json\\\")); json.load(open(\\\"reproduction/environment.json\\\")); assert_contract_alignment()\"'",
+      "exit_code": 0,
+      "result": {"contract_alignment": "pass", "json_validity": "pass"}
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && sh -n reproduction/bootstrap-lima.sh reproduction/bootstrap-candidate-lima.sh reproduction/prepare-candidate-lima.sh'",
+      "exit_code": 0,
+      "result": {"shell_syntax": "pass", "source_files_checked": 3}
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && python3 reproduction/isolation_lifecycle_probe.py'",
+      "exit_code": 0,
+      "result": {"isolated_sigterm_exit_zero": "pass"}
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'sudo unshare --net --fork /bin/sh -c \"ip link set lo up && bwrap --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /Users/engineer/ws/ev/exp/e1/reproduction/isolation_probe.py /probe.py --proc /proc --dev /dev --tmpfs /tmp --unshare-user --unshare-pid --unshare-ipc --unshare-uts --unshare-cgroup-try --die-with-parent --uid 65534 --gid 65534 /usr/bin/python3 /probe.py\"'",
+      "exit_code": 0,
+      "result": {
+        "candidate_identity": "uid=65534,gid=65534",
+        "external_egress": "blocked",
+        "isolated_loopback": "available",
+        "sealed_evaluator_path": "not_visible"
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && python3 -m evaluator.rerun --candidate-root /tmp/nonexistent-e1-candidate --candidate-module candidate_service --report /tmp/should-not-exist.json'",
+      "exit_code": 2,
+      "result": {
+        "candidate_run_performed": false,
+        "pre_privilege_freeze_guard": "pass",
+        "reported_error": "e1 manifest is not frozen; candidate execution is prohibited"
+      }
+    },
+    {
+      "command": "limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && make verify-freeze'",
+      "exit_code": 0,
+      "result": {
+        "artifacts_verified": 33,
+        "public_artifacts": 4,
+        "sealed_artifacts": 29,
+        "status": "proposed_for_signoff"
+      }
+    }
+  ]
+}
