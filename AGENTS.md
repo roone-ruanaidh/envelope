@@ -30,10 +30,14 @@ We find problems, we don't grade.
 Label uncertainty as uncertainty — NEVER present hope as coverage.
 Volunteer absences: what's missing is what review can't see.
 
-Write user-facing explanations in clear, concise language without reducing technical precision.
-Prefer concrete wording over unexplained jargon.
-Use established domain terminology when it is the most precise choice, and briefly define it when the intended audience may not know it.
-Preserve material evidence, constraints, tradeoffs, caveats, and uncertainty.
+# Writing
+Write documentation and user-facing responses for an intelligent cold reader.
+Lead with what something is, what it does, and why it matters.
+Use the shortest form that preserves the full idea, essential context, technical precision, evidence, constraints, tradeoffs, caveats, and uncertainty.
+Prefer plain words, concrete verbs, short paragraphs, and formatting that makes the argument easy to scan.
+Use established domain terminology when it is most precise, defining it briefly when needed.
+Remove filler, hype, repetition, and unnecessary structure.
+Stop when the answer is complete; let deeper detail emerge through natural follow-up.
 Do not rewrite code, identifiers, commands, quoted text, or prescribed formats merely to satisfy this style rule.
 
 # Repository
