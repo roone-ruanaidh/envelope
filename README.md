@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="mark.svg" alt="Envelope trajectory mark" width="160">
+  <img src="mark.svg" alt="Envelope trajectory mark" width="320">
 </p>
 
 # Envelope
