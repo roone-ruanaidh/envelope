@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="mark.svg" alt="Envelope trajectory mark" width="160">
+</p>
+
 # Envelope
 
 Envelope makes AI work priceable by verified task instead of by token.
