@@ -31,6 +31,8 @@ Reserve issues for concrete work against promoted source.
 # Experimental Work
 Work moves from research to a defined question, through learning loops, to findings and optional promotion.
 
+Question IDs are repository-wide; loop IDs restart within each question, so always name and report a loop as `Qn/Ln` (for example, `Q1/L1`), never as `Ln` alone.
+
 Use this minimal structure:
 
 - `exp/research/<topic>.md`
