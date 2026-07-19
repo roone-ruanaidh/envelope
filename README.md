@@ -13,7 +13,7 @@ Envelope will not set prices. Instead, it will provide probability pricing for a
 
 Per-token pricing measures raw inputs and outputs, but a task's real price includes the remediation and verification required to reach acceptance, in addition to generation.
 
-Envelope researches combining an acceptance contract (the criteria and constraints that define done) and user preferences (models, harnesses, infrastructure, or none at all) to price tasks' probable cost-to-acceptance based-on benchmarked runs of comparable work under comparable configurations.
+Envelope researches combining an acceptance contract (the criteria and constraints that define done) and user preferences (models, harnesses, infrastructure, or none at all) to price tasks' probable cost-to-acceptance based on benchmarked runs of comparable work under comparable configurations.
 
 To do this, Envelope will use probability pricing.
 Probability pricing provides a distribution of probable costs to achieve accepted completion of the defined task, ranging from the most probable cost to the least probable cost (which may be more or less expensive).
