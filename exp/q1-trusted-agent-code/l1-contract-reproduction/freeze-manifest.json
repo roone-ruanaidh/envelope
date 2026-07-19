@@ -4,8 +4,8 @@
   "status": "proposed_for_signoff",
   "frozen": false,
   "created_at_utc": "2026-07-12T17:35:00Z",
-  "repository_path": "exp/e1",
-  "relocated_at_utc": "2026-07-13T21:15:19Z",
+  "repository_path": "exp/q1-trusted-agent-code/l1-contract-reproduction",
+  "relocated_at_utc": "2026-07-19T02:38:38Z",
   "contract_version": "1.0.0",
   "evaluator_version": "0.1.0",
   "manifest_integrity": {
@@ -14,12 +14,12 @@
     "reason": "A manifest cannot contain its own stable digest."
   },
   "governing_instructions": {
-    "path": "../../AGENTS.md",
-    "sha256": "f243dd2ed4ccebd2bc437bca45d8b7776da9001d9c8c25e9853baf7d5bde37d0"
+    "path": "../../../AGENTS.md",
+    "sha256": "00d375cf8de06b5a91ae9a3594c4c4b67a837bf33b07c858ecf4c3aba59dc276"
   },
   "governing_repository_policy": {
-    "path": "../../README.md",
-    "sha256": "491e93cbe61a9039ae557dbdbcfe024b749675dd68aa3bc69c538ef15604239c"
+    "path": "../../../README.md",
+    "sha256": "96affc9c3fbb713e25091786c898e38fd77179cef6859d3ac61a8a74c6fdd4ed"
   },
   "approved_decisions": [
     {
@@ -57,7 +57,7 @@
   "sealed_bundle": [
     ".gitignore",
     "Makefile",
-    "README.md",
+    "LOOP.md",
     "evaluator/__init__.py",
     "evaluator/acceptance.py",
     "evaluator/controller.py",
@@ -97,9 +97,9 @@
       "sha256": "9540a160bf893fafef366136ea1fe745cb85f016a6d48d1c5175919fed225eea"
     },
     {
-      "path": "README.md",
-      "size_bytes": 2701,
-      "sha256": "8bdd12e5d047a5ed104189a079bc1c0f127c19164377da655a36fd74a7f8bf4d"
+      "path": "LOOP.md",
+      "size_bytes": 2867,
+      "sha256": "b056281c3283da5a05b61f5b68e2d7ad96fe998c6395cb833e1198965da5cf14"
     },
     {
       "path": "evaluator/__init__.py",
@@ -154,7 +154,7 @@
     {
       "path": "evaluator/verify_freeze_manifest.py",
       "size_bytes": 7062,
-      "sha256": "709629c36a2a0a2f74e895dd1c6de9fb5b9a97acc351a3ae6c8b5b1832aaa746"
+      "sha256": "b480d144f6dad2d89b4ad0baa673a8e07616435b3f232527a83e71fffaee974c"
     },
     {
       "path": "public/contract/mypy.v1.ini",
@@ -213,8 +213,8 @@
     },
     {
       "path": "reproduction/candidate_boundary_probe.py",
-      "size_bytes": 1866,
-      "sha256": "6b7cadbef8e6cce4ad2e2d6a0a7f1a03495a4304665b17300a0aaf35d3e404f7"
+      "size_bytes": 1916,
+      "sha256": "962f5c0271658ff6d1b6e8f1ad890068b1b5883f974b9e59c0c5c7b8f7eb099b"
     },
     {
       "path": "reproduction/environment.json",
@@ -228,8 +228,8 @@
     },
     {
       "path": "reproduction/isolation_probe.py",
-      "size_bytes": 451,
-      "sha256": "3b33ae95e8d7b7a59702bf777db134160c840d1f4e6ec9db7167d3c67dd3fd1d"
+      "size_bytes": 501,
+      "sha256": "8b678d3c9bab614e3913b1243ca9eead55b297c085cd5467a7e894cd674bce67"
     },
     {
       "path": "reproduction/prepare-candidate-lima.sh",

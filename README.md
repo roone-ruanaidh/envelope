@@ -36,7 +36,7 @@ Each milestone builds on the last:
 | 7 | Real-time pricing of novel tasks | Not Started |
 
 Envelope is built through experimentation.
-The [`exp/`](exp/) directory holds candidates, active experiments, and their evidence.
+The [`exp/`](exp/) directory holds research, questions, learning loops, results, and evidence.
 Artifacts leave `exp/` for `src/` **only** through an explicit promotion decision.
 
 Envelope's provisional language boundary is:

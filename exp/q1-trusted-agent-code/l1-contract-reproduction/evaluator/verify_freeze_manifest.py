@@ -123,7 +123,7 @@ def verify() -> dict[str, Any]:
     _require(isinstance(policy, dict), "governing_repository_policy must be an object")
     policy_path = _governing_path(policy, label="repository README")
     _require(
-        policy_path == ROOT.parents[1] / "README.md",
+        policy_path == ROOT.parents[2] / "README.md",
         "governing README is not at the repository root",
     )
 

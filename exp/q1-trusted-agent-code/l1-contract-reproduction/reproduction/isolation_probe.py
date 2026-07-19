@@ -6,7 +6,9 @@ import socket
 from pathlib import Path
 
 
-assert not Path("/Users/engineer/ws/ev/exp/e1/evaluator").exists()
+assert not Path(
+    "/Users/engineer/ws/ev/exp/q1-trusted-agent-code/l1-contract-reproduction/evaluator"
+).exists()
 
 listener = socket.socket()
 listener.bind(("127.0.0.1", 0))

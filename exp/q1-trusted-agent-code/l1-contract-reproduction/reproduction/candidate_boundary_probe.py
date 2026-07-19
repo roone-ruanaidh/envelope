@@ -12,7 +12,9 @@ home = Path.home().resolve()
 
 assert workspace == home / "candidate"
 assert not Path("/Users/engineer/ws").exists()
-assert not Path("/Users/engineer/ws/ev/exp/e1/evaluator").exists()
+assert not Path(
+    "/Users/engineer/ws/ev/exp/q1-trusted-agent-code/l1-contract-reproduction/evaluator"
+).exists()
 
 expected_public = {
     "mypy.v1.ini",

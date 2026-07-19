@@ -1,8 +1,10 @@
-# E1 — trusted agent-produced code
+# L1 — contract reproduction
 
-> **Question:** What does it cost to move one agent-produced lease service from declared completion to accepted completion under a frozen contract and settlement procedure?
+> **Question:** What does it cost to move one agent-produced lease service from declared completion to accepted completion under a fixed contract and settlement procedure?
 
-E1 defines a lease-based job-service contract and measures the work required to settle one isolated agent implementation against it. The accounting boundary keeps agent usage, machine execution, human attention, and wall latency separate; unavailable observations remain unknown rather than zero.
+This proposed loop belongs to [`Q1 — cost of trusted agent-produced code`](../QUESTION.md). It defines a lease-based job-service contract and measures the work required to settle one isolated agent implementation against it. The accounting boundary keeps agent usage, machine execution, human attention, and wall latency separate; unavailable observations remain unknown rather than zero.
+
+No candidate run or loop disposition exists. `reproduction/validation.json` records pre-run evaluator and isolation evidence only.
 
 ## Settlement
 
@@ -15,7 +17,7 @@ Accepted completion requires:
 
 The public implementation contract is in [`public/contract`](public/contract). The evaluator, behavioral reference, and deliberate defects are experimenter-owned and excluded from the implementation agent's environment.
 
-One candidate and any remediation share one isolated workspace and budget. The run settles as `Accepted`, `Rejected`, or `Inconclusive`. E1 does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the contract.
+One candidate and any remediation share one isolated workspace and budget. The run settles as `Accepted`, `Rejected`, or `Inconclusive`. L1 does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the contract.
 
 ## Reproduction
 
@@ -39,7 +41,7 @@ make verify-freeze
 Authoritative validation runs in the recorded Lima instance:
 
 ```sh
-limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/e1 && make verify-evaluator'
+limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/q1-trusted-agent-code/l1-contract-reproduction && make verify-evaluator'
 ```
 
 Candidate authoring uses the no-host-mount Lima environment declared in `reproduction/candidate-lima.yaml`. Setup installs the pinned toolchain and public dependency lock before the agent phase; agent commands can access only the public bundle and candidate workspace and cannot use the network.
@@ -48,5 +50,4 @@ Candidate authoring uses the no-host-mount Lima environment declared in `reprodu
 
 - [`freeze-manifest.json`](freeze-manifest.json) defines the sealed inventory, run budget, ledger, and freeze state.
 - [`reproduction/environment.json`](reproduction/environment.json) records the execution environment.
-- [`reproduction/validation.json`](reproduction/validation.json) records validation and run evidence.
-- [GitHub issue #1](https://github.com/roone-ruanaidh/envelope/issues/1) tracks decisions and lifecycle state.
+- [`reproduction/validation.json`](reproduction/validation.json) records historical pre-run qualification evidence.
