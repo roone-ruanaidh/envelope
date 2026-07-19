@@ -588,7 +588,7 @@ The signal is strong but should not be overstated: several documents are drafts,
 
 ### 6.2 Capability is outrunning reliable acceptance
 
-The 2026 capability evidence makes the research urgent and also warns against broad claims. [MirrorCode](https://metr.org/blog/2026-04-10-mirrorcode-preliminary-results/) tests black-box reimplementation of full programs under hidden tests and unusually large agent budgets. That is closely adjacent to a later inherited-oracle experiment. Experiment 1 should remain narrower: implement a stateful lease service from a declared contract, then measure the verification, review, and remediation premium required for acceptance.
+The 2026 capability evidence makes the research urgent and also warns against broad claims. [MirrorCode](https://metr.org/blog/2026-04-10-mirrorcode-preliminary-results/) tests black-box reimplementation of full programs under hidden tests and unusually large agent budgets. That is closely adjacent to a later inherited-oracle experiment. L1 should remain narrower: implement a stateful lease service from a declared contract, then measure the verification, review, and remediation premium required for acceptance.
 
 METR's [May 2026 frontier-risk report](https://metr.org/blog/2026-05-19-frontier-risk-report/) reports striking long-horizon capability on selected tasks alongside evaluator cheating/reward hacking and weaker strategic judgment. Separately, METR reports that [many SWE-bench Verified test-passing pull requests would not have been merged](https://metr.org/notes/2026-03-10-many-swe-bench-passing-prs-would-not-be-merged-into-main/). Those results reinforce a four-stage distinction:
 
@@ -802,7 +802,7 @@ The last two fields are essential. A research program that cannot invalidate its
 
 **Question.** Does the evaluation system measure behavioral conformance rather than superficial test satisfaction?
 
-**Design.** Before exposing Experiment 1 to agents, construct a defect taxonomy and a bank of seeded implementations. Mutate one semantic dimension at a time:
+**Design.** Before exposing L1 to agents, construct a defect taxonomy and a bank of seeded implementations. Mutate one semantic dimension at a time:
 
 - lease acquisition races and double ownership;
 - renewal at exact TTL boundaries;
@@ -1017,11 +1017,11 @@ Use only information available at decision time. Compare against an oracle estim
 
 **Category gate.** If the Envelope-style resolver rarely changes a decision or its changes do not improve trusted-completion economics, Envelope may be a reporting profile rather than a new resolver/platform category.
 
-## 9. Experiment 1 as the trust-premium proving ground
+## 9. L1 as the trust-premium proving ground
 
 The proposed lease-based job service is a strong first experiment because correctness lives in time and interleaving, not merely endpoint shape.
 
-The source thesis contains an ambiguity: it describes an OpenAPI contract and black-box behavioral reference, but its locked build order says the human authors the contract and full suite before the agent implements from the contract. The sequencing decision is to privilege that build order. **Experiment 1 gives the agent the declared contract, not access to an inherited black-box oracle.** A human-authored reference implementation may help validate the evaluator, but contamination control is not the first research question.
+The source thesis contains an ambiguity: it describes an OpenAPI contract and black-box behavioral reference, but its locked build order says the human authors the contract and full suite before the agent implements from the contract. The sequencing decision is to privilege that build order. **L1 gives the agent the declared contract, not access to an inherited black-box oracle.** A human-authored reference implementation may help validate the evaluator, but contamination control is not the first research question.
 
 The inherited-oracle experiment is promoted to Experiment 2 or 3. Its Spooled candidate audit and contamination methodology remain intact rather than delaying the first trusted-cost measurement.
 
@@ -1035,7 +1035,7 @@ This does not claim source equivalence, implementation equivalence, production r
 
 ### 9.2 The deliberately narrow contribution
 
-Experiment 1 should not compete with MirrorCode on black-box novelty or task length. It establishes Envelope's experimental method and its primary measurement—the trust premium—on one small, production-shaped object. Its value is:
+L1 should not compete with MirrorCode on black-box novelty or task length. It establishes Envelope's experimental method and its primary measurement—the trust premium—on one small, production-shaped object. Its value is:
 
 - a stateful network service rather than a deterministic program boundary;
 - concurrency and temporal semantics as first-class constructs;
@@ -1170,9 +1170,9 @@ Human review should have a rubric and stopping rule. At minimum, reviewers asses
 
 Where feasible, blind reviewers to model/provider/treatment and randomize candidate order. Calibrate at least two reviewers on a subset and report disagreement. Do not use reviewer taste as an unexamined ground truth; record which observable concern caused rejection.
 
-### 9.10 Experiment 1 exit criteria
+### 9.10 L1 exit criteria
 
-Experiment 1 is complete as research—not merely as a repository—when:
+L1 is complete as research—not merely as a repository—when:
 
 - the evaluator reliably catches all predeclared critical mutants;
 - its remaining blind spots and false-reject risks are documented;
@@ -1210,7 +1210,7 @@ The next experiments should not be chosen as a list of industries. They should s
 
 These are research shapes, not commitments or buyer personas:
 
-1. **Contract-defined lease service** — agent implementation against a human-authored contract and evaluator; establishes the trust-premium method. This is Experiment 1.
+1. **Contract-defined lease service** — agent implementation against a human-authored contract and evaluator; establishes the trust-premium method. This is L1.
 2. **Inherited black-box service recreation** — a Spooled-derived or similar sealed oracle with contamination controls, concurrency, and temporal semantics. Candidate for Experiment 2 or 3.
 3. **Tool-using agent over untrusted inputs** — trajectory, delegated authority, prompt injection, and broker receipts.
 4. **Self-hosted inference reproducibility** — runtime/hardware/quantization/determinism surface with measurable performance cost.
@@ -1391,7 +1391,7 @@ The first engine milestone should be offline replay, not live orchestration. It 
 
 Build only what each experiment needs: human-authored evaluators, ordinary schemas, immutable run artifacts, cost/human ledgers, and deterministic `verify`/`rerun` entry points. Avoid a shared branded runtime.
 
-**Gate:** Experiment 1's measurement system passes its mutant/false-accept audit.
+**Gate:** L1's measurement system passes its mutant/false-accept audit.
 
 ### Stage 1 — five semantically diverse experiments
 
@@ -1482,7 +1482,7 @@ These outcomes would not make the research program a failure. They would define 
 2. Use the terms **admissible region**, **qualified frontier**, and **declared operating boundary** separately. Reserve “closed” for a specified closure notion.
 3. Make `Accepted | Rejected | Inconclusive` foundational. Never coerce provider-unavailable, deferred, or unidentifiable claims into a score.
 4. Treat the qualification claim—not the provider/model—as the central catalog object, with scope, protocol, uncertainty, expiry, and defeaters.
-5. Validate the Experiment 1 evaluator and mutant bank before running agents. Measure automated pass, expert acceptance, and survival separately.
+5. Validate the L1 evaluator and mutant bank before running agents. Measure automated pass, expert acceptance, and survival separately.
 6. Preserve raw native evidence, use OTel for correlation, and make deterministic reconciliation over a sealed bundle the eventual core invariant.
 7. Measure cost per accepted completion and the full cost vector. Monetize residual loss only under an explicit experiment model.
 8. Discover geometry through controlled intervention graphs and boundary-focused experiments, not by assuming Euclidean dimensions or a smooth surface.

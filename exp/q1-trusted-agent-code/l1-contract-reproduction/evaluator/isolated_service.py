@@ -1,4 +1,4 @@
-"""Launch one candidate service inside the frozen e1 mount boundary."""
+"""Launch one candidate service inside the L1 isolation boundary."""
 
 from __future__ import annotations
 
@@ -115,7 +115,7 @@ def run() -> int:
 
     candidate_root = Path(_require_environment("CT_CANDIDATE_ROOT")).resolve()
     if not candidate_root.is_dir() or candidate_root.is_relative_to(ROOT):
-        raise RuntimeError("candidate root must exist outside the sealed evaluator repository")
+        raise RuntimeError("candidate root must exist outside the evaluator source tree")
     if not (candidate_root / ".venv" / "bin" / "python").is_file():
         raise RuntimeError("candidate root lacks its preprovisioned locked virtual environment")
     module = _require_environment("CT_CANDIDATE_MODULE")

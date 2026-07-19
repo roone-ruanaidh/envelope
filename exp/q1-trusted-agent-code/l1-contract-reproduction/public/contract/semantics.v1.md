@@ -6,7 +6,7 @@
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative. This document, the
 OpenAPI file, the Python dependency lock, and the mypy configuration together are the complete
-public acceptance contract for Envelope E1. A conflict between them is a freeze blocker;
+public acceptance contract for Envelope L1. A conflict between them is a contract error;
 none silently overrides another.
 
 ## 1. Scope and execution profile
@@ -65,7 +65,7 @@ including an omitted or extra field, a boolean supplied as an integer, an out-of
 malformed UUID, returns `422` and `validation_error`.
 
 The evaluator sends `Content-Length` and no request body larger than 1,048,576 encoded bytes.
-Streaming, chunked, or larger request bodies are outside the Experiment 1 acceptance profile.
+Streaming, chunked, or larger request bodies are outside the L1 acceptance profile.
 
 String lengths are Unicode code-point counts. String comparisons are exact and case-sensitive,
 with no trimming, case folding, or Unicode normalization. The declared inclusive bounds are:
@@ -226,7 +226,7 @@ error is returned is otherwise unspecified and is not acceptance-tested.
 
 The concurrent same-key submission and lease claim/reclaim histories declared in Section 5 are
 linearizable at the stable evaluator clock. Mixed concurrent heartbeat, completion, and failure
-histories are not part of Experiment 1 acceptance; those operations are exercised sequentially. All
+histories are not part of L1 acceptance; those operations are exercised sequentially. All
 state needed to preserve jobs, idempotency, current token, lease metadata, and terminal outcomes is
 durable in SQLite. A success response MUST be sent only after its state transition is committed.
 
@@ -238,7 +238,7 @@ Restarting the service with the same `CT_DATABASE_PATH` and restored logical tim
 - stored result or failure.
 
 This applies after graceful shutdown and after abrupt process termination performed after an
-acknowledged response. Crashes during an in-flight operation are not exercised in Experiment 1.
+acknowledged response. Crashes during an in-flight operation are not exercised in L1.
 
 ## 8. Explicitly unspecified behavior
 

@@ -5,7 +5,7 @@ CANDIDATE_ROOT ?=
 CANDIDATE_MODULE ?=
 RUN_REPORT ?= build/candidate-acceptance.json
 
-.PHONY: verify verify-evaluator verify-freeze rerun
+.PHONY: verify verify-evaluator rerun
 
 verify:
 	@if [ -z "$(SERVICE_COMMAND)" ]; then \
@@ -19,9 +19,6 @@ verify:
 
 verify-evaluator:
 	$(PYTHON) -m evaluator.verify_evaluator --json-report build/evaluator-validation.json
-
-verify-freeze:
-	$(PYTHON) -m evaluator.verify_freeze_manifest
 
 rerun:
 	@if [ -z "$(CANDIDATE_ROOT)" ] || [ -z "$(CANDIDATE_MODULE)" ]; then \

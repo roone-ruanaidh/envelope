@@ -64,7 +64,7 @@ class ServiceController:
         self.startup_timeout = startup_timeout
         self.shutdown_timeout = shutdown_timeout
         self.suite_deadline = suite_deadline
-        self._temporary = tempfile.TemporaryDirectory(prefix="ct-e1-evaluator-")
+        self._temporary = tempfile.TemporaryDirectory(prefix="ct-l1-evaluator-")
         self.run_directory = Path(self._temporary.name)
         self.database_path = self.run_directory / "service.sqlite3"
         self._log_tail = bytearray()

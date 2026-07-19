@@ -9,11 +9,11 @@ Envelope is a research project on pricing AI work by verified task instead of by
 Envelope's goal is to enable cost-effective AI workflows that can be accurately budgeted for, using qualified models, harnesses, and infrastructure. 
 Envelope will not set prices. Instead, it will provide probability pricing for accepted completion of a defined task.
 
-# Vision
+# Intent
 
 Per-token pricing measures raw inputs and outputs, but a task's real price includes the remediation and verification required to reach acceptance, in addition to generation.
 
-Envelope researches combining an acceptance contract (the criteria and constraints that define done) and user preferences (models, harnesses, infrastructure, or none at all) to price the tasks' cost-to-acceptance from measured evidence (benchmarked runs of comparable work under comparable configurations). 
+Envelope researches combining an acceptance contract (the criteria and constraints that define done) and user preferences (models, harnesses, infrastructure, or none at all) to price tasks' probable cost-to-acceptance based-on benchmarked runs of comparable work under comparable configurations.
 
 To do this, Envelope will use probability pricing.
 Probability pricing provides a distribution of probable costs to achieve accepted completion of the defined task, ranging from the most probable cost to the least probable cost (which may be more or less expensive).

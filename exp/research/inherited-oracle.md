@@ -154,16 +154,16 @@ Proceed with Spooled as the inherited oracle if a short freeze-and-projection sp
 
 If any of conditions 1–5 fail, do not force the candidate. Audit one additional recent project, then author the smallest independent reference service if no inherited oracle survives.
 
-## Relationship to E1
+## Relationship to L1
 
 This methodology is intentionally preserved as a candidate. It asks a larger question than the first vertical slice:
 
 > Can an agent behaviorally recreate an inherited black-box system, and can memorization and evaluator exposure be controlled well enough to interpret the result?
 
-Experiment 1 instead asks the narrower foundational question:
+L1 instead asks the narrower foundational question:
 
 > What does it cost to trust agent-produced code against a declared, human-authored contract and evaluator?
 
-For Experiment 1, the agent receives the contract and no inherited-oracle access. General queue knowledge is expected substrate rather than a contamination confound. The experiment measures the premium introduced by verification, review, remediation, and acceptance.
+For L1, the agent receives the contract and no inherited-oracle access. General queue knowledge is expected substrate rather than a contamination confound. The loop measures the premium introduced by verification, review, remediation, and acceptance.
 
 The inherited-oracle work may resume only through a future charter decision. It has no assigned experiment number or sequence. Its next engineering artifact would be a bounded **oracle freeze-and-projection specification**, followed by a short technical spike. That spike would pin the candidate, enumerate exposed operations, define façade/native equivalence tests, apply the contamination controls above, and accept or reject Spooled under a strict time budget.

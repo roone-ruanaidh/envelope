@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-setup_dir=${1:-/tmp/e1-setup}
+setup_dir=${1:-/tmp/l1-setup}
 candidate_root=${HOME}/candidate
 
 test ! -e /Users/engineer/ws
@@ -34,4 +34,3 @@ sudo chown -R root:root "${candidate_root}/.venv" "${candidate_root}/public/cont
 sudo chmod -R a-w "${candidate_root}/.venv" "${candidate_root}/public/contract"
 
 findmnt --json
-sha256sum "${candidate_root}"/public/contract/*

@@ -4,7 +4,7 @@
 
 This proposed loop belongs to [`Q1 — cost of trusted agent-produced code`](../QUESTION.md). It defines a lease-based job-service contract and measures the work required to settle one isolated agent implementation against it. The accounting boundary keeps agent usage, machine execution, human attention, and wall latency separate; unavailable observations remain unknown rather than zero.
 
-No candidate run or loop disposition exists. `reproduction/validation.json` records pre-run evaluator and isolation evidence only.
+No candidate run or loop disposition exists.
 
 ## Settlement
 
@@ -15,7 +15,7 @@ Accepted completion requires:
 - a clean bootstrap from locked dependencies; and
 - affirmative human source review of the declared implementation constraints.
 
-The public implementation contract is in [`public/contract`](public/contract). The evaluator, behavioral reference, and deliberate defects are experimenter-owned and excluded from the implementation agent's environment.
+The public implementation contract is in [`public/contract`](public/contract). The evaluator, behavioral reference, and deliberate defects are loop-owned and excluded from the implementation agent's environment.
 
 One candidate and any remediation share one isolated workspace and budget. The run settles as `Accepted`, `Rejected`, or `Inconclusive`. L1 does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the contract.
 
@@ -31,11 +31,10 @@ make verify \
 
 The service receives `CT_HOST`, `CT_PORT`, `CT_DATABASE_PATH`, and `CT_CLOCK_INITIAL_MS`. `make verify` proves only the declared black-box behaviors; it does not satisfy the typing, bootstrap, or human-review gates.
 
-Validate the evaluator and its sealed inventory with:
+Validate the evaluator with:
 
 ```sh
 make verify-evaluator
-make verify-freeze
 ```
 
 Authoritative validation runs in the recorded Lima instance:
@@ -45,9 +44,3 @@ limactl shell ct-ev -- sh -lc 'cd /Users/engineer/ws/ev/exp/q1-trusted-agent-cod
 ```
 
 Candidate authoring uses the no-host-mount Lima environment declared in `reproduction/candidate-lima.yaml`. Setup installs the pinned toolchain and public dependency lock before the agent phase; agent commands can access only the public bundle and candidate workspace and cannot use the network.
-
-## Records
-
-- [`freeze-manifest.json`](freeze-manifest.json) defines the sealed inventory, run budget, ledger, and freeze state.
-- [`reproduction/environment.json`](reproduction/environment.json) records the execution environment.
-- [`reproduction/validation.json`](reproduction/validation.json) records historical pre-run qualification evidence.

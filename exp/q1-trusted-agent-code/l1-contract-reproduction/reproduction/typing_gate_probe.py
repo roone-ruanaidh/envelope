@@ -1,4 +1,4 @@
-"""Minimal probe for the frozen Python-arm typing configuration."""
+"""Minimal probe for the L1 Python-arm typing configuration."""
 
 from pydantic import BaseModel, ConfigDict
 

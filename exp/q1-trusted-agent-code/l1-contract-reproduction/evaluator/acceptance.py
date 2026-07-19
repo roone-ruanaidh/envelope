@@ -1,4 +1,4 @@
-"""Executable black-box acceptance suite for the Experiment 1 service.
+"""Executable black-box acceptance suite for the L1 service.
 
 The service is treated only as an HTTP endpoint plus the documented foreground
 process protocol.  No candidate module, database, or implementation detail is
