@@ -21,6 +21,17 @@ from .http import HTTPClient, TransportFailure
 class ControllerFailure(AssertionError):
     """The service did not obey the evaluator process boundary."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        origin: str = "candidate",
+        return_code: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.origin = origin
+        self.return_code = return_code
+
 
 MAX_SERVICE_LOG_BYTES = 65_536
 
@@ -44,6 +55,8 @@ class ServiceController:
         shutdown_timeout: float = 1.5,
         suite_deadline: float | None = None,
         extra_env: Mapping[str, str] | None = None,
+        force_stop_signal: int = signal.SIGKILL,
+        isolation_wrapper: bool = False,
     ) -> None:
         parsed = urlparse(base_url)
         if parsed.scheme != "http" or parsed.hostname is None or parsed.port is None:
@@ -64,7 +77,9 @@ class ServiceController:
         self.startup_timeout = startup_timeout
         self.shutdown_timeout = shutdown_timeout
         self.suite_deadline = suite_deadline
-        self._temporary = tempfile.TemporaryDirectory(prefix="ct-l1-evaluator-")
+        self.force_stop_signal = force_stop_signal
+        self.isolation_wrapper = isolation_wrapper
+        self._temporary = tempfile.TemporaryDirectory(prefix="q1-l1-evaluator-")
         self.run_directory = Path(self._temporary.name)
         self.database_path = self.run_directory / "service.sqlite3"
         self._log_tail = bytearray()
@@ -76,10 +91,10 @@ class ServiceController:
         env = os.environ.copy()
         env.update(
             {
-                "CT_HOST": parsed.hostname,
-                "CT_PORT": str(parsed.port),
-                "CT_DATABASE_PATH": str(self.database_path),
-                "CT_CLOCK_INITIAL_MS": str(clock_initial_ms),
+                "Q1_L1_HOST": parsed.hostname,
+                "Q1_L1_PORT": str(parsed.port),
+                "Q1_L1_DATABASE_PATH": str(self.database_path),
+                "Q1_L1_CLOCK_INITIAL_MS": str(clock_initial_ms),
             }
         )
         if extra_env:
@@ -102,6 +117,11 @@ class ServiceController:
         if self.suite_deadline is None:
             return configured
         return max(0.01, min(configured, self.suite_deadline - time.monotonic()))
+
+    def _process_exit_origin(self, return_code: int | None) -> str:
+        if self.isolation_wrapper and return_code == 125:
+            return "isolation"
+        return "candidate"
 
     def _wait_for_listener_close(self, timeout: float = 0.25) -> bool:
         deadline = time.monotonic() + self._bounded_timeout(timeout)
@@ -135,11 +155,13 @@ class ServiceController:
 
     def start(self) -> None:
         if self._closed:
-            raise ControllerFailure("controller is already closed")
+            raise ControllerFailure("controller is already closed", origin="evaluator")
         if self._process is not None and self._process.poll() is None:
-            raise ControllerFailure("service is already running")
+            raise ControllerFailure("service is already running", origin="evaluator")
         if self._listener_is_open():
-            raise ControllerFailure("base URL already has a listener before service start")
+            raise ControllerFailure(
+                "base URL already has a listener before service start", origin="evaluator"
+            )
         self._process = subprocess.Popen(
             self.argv,
             cwd=self.cwd,
@@ -151,11 +173,11 @@ class ServiceController:
             start_new_session=True,
         )
         if self._process.stdout is None:  # pragma: no cover - guaranteed by PIPE
-            raise ControllerFailure("service output pipe was not created")
+            raise ControllerFailure("service output pipe was not created", origin="evaluator")
         self._log_thread = Thread(
             target=self._capture_output,
             args=(self._process.stdout,),
-            name="ct-service-log",
+            name="q1-l1-service-log",
             daemon=True,
         )
         self._log_thread.start()
@@ -167,9 +189,12 @@ class ServiceController:
         while time.monotonic() < deadline:
             if self._process.poll() is not None:
                 self._finish_log_capture(self._process)
+                return_code = self._process.returncode
                 raise ControllerFailure(
-                    f"service exited during startup with {self._process.returncode}; "
-                    f"log tail: {self.log_tail()!r}"
+                    f"service exited during startup with {return_code}; "
+                    f"log tail: {self.log_tail()!r}",
+                    origin=self._process_exit_origin(return_code),
+                    return_code=return_code,
                 )
             try:
                 # Readiness establishes that the endpoint appeared after launch.
@@ -193,25 +218,55 @@ class ServiceController:
         if process is None:
             return ShutdownResult(graceful, False, None, 0.0)
         forced = False
+        hard_wrapper_kill = False
         if process.poll() is None:
             try:
-                os.killpg(process.pid, signal.SIGTERM if graceful else signal.SIGKILL)
+                if graceful or self.force_stop_signal == signal.SIGKILL:
+                    os.killpg(
+                        process.pid,
+                        signal.SIGTERM if graceful else signal.SIGKILL,
+                    )
+                else:
+                    os.kill(process.pid, self.force_stop_signal)
             except ProcessLookupError:
                 pass
             try:
                 process.wait(
-                    timeout=self._bounded_timeout(self.shutdown_timeout if graceful else 0.75)
+                    timeout=(
+                        self._bounded_timeout(self.shutdown_timeout)
+                        if graceful
+                        else 0.75
+                    )
                 )
             except subprocess.TimeoutExpired:
                 forced = True
+                if self.isolation_wrapper and self.force_stop_signal != signal.SIGKILL:
+                    if graceful:
+                        try:
+                            os.kill(process.pid, self.force_stop_signal)
+                        except ProcessLookupError:
+                            pass
+                else:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                 try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.wait(timeout=self._bounded_timeout(0.75))
-                except subprocess.TimeoutExpired as exc:
-                    raise ControllerFailure("service process group survived SIGKILL") from exc
+                    process.wait(timeout=0.75)
+                except subprocess.TimeoutExpired:
+                    hard_wrapper_kill = self.isolation_wrapper
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    try:
+                        process.wait(timeout=0.75)
+                    except subprocess.TimeoutExpired:
+                        pass
+                if process.poll() is None:
+                    raise ControllerFailure(
+                        "service process group survived SIGKILL", origin="isolation"
+                    )
         result = ShutdownResult(
             graceful_requested=graceful,
             forced_kill=forced,
@@ -222,7 +277,22 @@ class ServiceController:
         self.shutdown_history.append(result)
         self._process = None
         if not self._wait_for_listener_close():
-            raise ControllerFailure("service listener remained reachable after process shutdown")
+            raise ControllerFailure(
+                "service listener remained reachable after process shutdown",
+                origin="isolation" if self.isolation_wrapper else "candidate",
+            )
+        if hard_wrapper_kill:
+            raise ControllerFailure(
+                "isolation wrapper did not unwind within its cleanup allowance",
+                origin="isolation",
+                return_code=result.return_code,
+            )
+        if self.isolation_wrapper and result.return_code == 125:
+            raise ControllerFailure(
+                "isolation wrapper reported a resource or boundary failure during teardown",
+                origin="isolation",
+                return_code=125,
+            )
         return result
 
     def restart(self, *, graceful: bool) -> ShutdownResult:
@@ -235,7 +305,7 @@ class ServiceController:
 
         if now_ms < 0 or isinstance(now_ms, bool):
             raise ValueError("restart clock must be a nonnegative integer")
-        self.environment["CT_CLOCK_INITIAL_MS"] = str(now_ms)
+        self.environment["Q1_L1_CLOCK_INITIAL_MS"] = str(now_ms)
 
     def log_tail(self, limit: int = 8_192) -> str:
         with self._log_lock:

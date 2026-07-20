@@ -1,4 +1,4 @@
-"""Executable black-box acceptance suite for the L1 service.
+"""Executable black-box acceptance suite for the Q1/L1 service.
 
 The service is treated only as an HTTP endpoint plus the documented foreground
 process protocol.  No candidate module, database, or implementation detail is
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 import sys
 import time
 import traceback
@@ -22,8 +23,8 @@ from uuid import uuid4
 
 from . import CONTRACT_VERSION, EVALUATOR_VERSION
 from .controller import ControllerFailure, ServiceController
-from .http import HTTPClient, Response
-from .schema import assert_contract_alignment
+from .http import HTTPClient, Response, TransportFailure
+from .schema import SchemaViolation, assert_contract_alignment
 
 
 CLOCK_INITIAL_MS = 1_700_000_000_000
@@ -51,6 +52,7 @@ class TestResult:
     passed: bool
     duration_ms: int
     detail: str | None = None
+    failure_origin: str | None = None
 
 
 TEST_CASES: tuple[TestCase, ...] = (
@@ -183,7 +185,7 @@ class AcceptanceSuite:
             barrier.wait(timeout=3.0)
             return operation(index)
 
-        with ThreadPoolExecutor(max_workers=count, thread_name_prefix="ct-acceptance") as executor:
+        with ThreadPoolExecutor(max_workers=count, thread_name_prefix="q1-l1-acceptance") as executor:
             futures = [executor.submit(invoke, index) for index in range(count)]
             return [future.result(timeout=5.0) for future in futures]
 
@@ -774,6 +776,14 @@ def _layer_summary(results: Sequence[TestResult]) -> dict[str, dict[str, Any]]:
     return layers
 
 
+def _failure_origin(exc: Exception) -> str:
+    if isinstance(exc, ControllerFailure):
+        return exc.origin
+    if isinstance(exc, (AcceptanceFailure, SchemaViolation, TransportFailure)):
+        return "candidate"
+    return "evaluator"
+
+
 def run_acceptance(
     *,
     base_url: str,
@@ -784,6 +794,8 @@ def run_acceptance(
     startup_timeout: float = DEFAULT_STARTUP_TIMEOUT_SECONDS,
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS,
     shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT_SECONDS,
+    force_stop_signal: int = signal.SIGKILL,
+    isolation_wrapper: bool = False,
 ) -> dict[str, Any]:
     started_wall = datetime.now(timezone.utc)
     started = time.monotonic()
@@ -796,9 +808,13 @@ def run_acceptance(
         shutdown_timeout=shutdown_timeout,
         suite_deadline=deadline,
         extra_env=extra_env,
+        force_stop_signal=force_stop_signal,
+        isolation_wrapper=isolation_wrapper,
     )
     results: list[TestResult] = []
     startup_error: str | None = None
+    startup_failure_origin: str | None = None
+    startup_return_code: int | None = None
     log_tail = ""
     try:
         assert_contract_alignment()
@@ -817,6 +833,7 @@ def run_acceptance(
                         passed=False,
                         duration_ms=0,
                         detail=f"suite deadline of {suite_timeout:.1f}s exceeded",
+                        failure_origin="candidate",
                     )
                 )
                 break
@@ -833,6 +850,7 @@ def run_acceptance(
                         passed=False,
                         duration_ms=round((time.monotonic() - test_started) * 1_000),
                         detail=detail,
+                        failure_origin=_failure_origin(exc),
                     )
                 )
                 if fail_fast:
@@ -848,21 +866,33 @@ def run_acceptance(
                 )
     except Exception as exc:
         startup_error = "".join(traceback.format_exception_only(type(exc), exc)).strip()
+        if isinstance(exc, ControllerFailure):
+            startup_failure_origin = exc.origin
+            startup_return_code = exc.return_code
+        else:
+            startup_failure_origin = "evaluator"
     finally:
         shutdowns_before_close = list(controller.shutdown_history)
         try:
             log_tail = controller.close()
         except Exception as exc:
             close_detail = "".join(traceback.format_exception_only(type(exc), exc)).strip()
-            results.append(
-                TestResult(
-                    name="controller_finalizer",
-                    layer="cleanup",
-                    passed=False,
-                    duration_ms=0,
-                    detail=close_detail,
+            close_origin = _failure_origin(exc)
+            if startup_error is not None:
+                startup_error = f"{startup_error}; finalizer: {close_detail}"
+                if close_origin in {"evaluator", "isolation"}:
+                    startup_failure_origin = close_origin
+            else:
+                results.append(
+                    TestResult(
+                        name="controller_finalizer",
+                        layer="cleanup",
+                        passed=False,
+                        duration_ms=0,
+                        detail=close_detail,
+                        failure_origin=close_origin,
+                    )
                 )
-            )
         shutdowns = list(controller.shutdown_history)
         if not shutdowns:
             shutdowns = shutdowns_before_close
@@ -885,6 +915,10 @@ def run_acceptance(
             "shutdown_timeout_seconds": shutdown_timeout,
         },
         "startup_error": startup_error,
+        "startup_failure_origin": startup_failure_origin,
+        "startup_return_code": startup_return_code,
+        "infrastructure_failure": startup_failure_origin in {"evaluator", "isolation"}
+        or any(result.failure_origin in {"evaluator", "isolation"} for result in results),
         "tests": [asdict(result) for result in results],
         "layers": _layer_summary(results),
         "shutdowns": [asdict(result) for result in shutdowns],

@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
-    "title": "Envelope L1 Lease Job Service",
+    "title": "Q1/L1 Lease Job Service",
     "version": "1.0.0",
-    "description": "Public HTTP contract for the L1 lease-based job service. Normative behavioral rules are in semantics.v1.md."
+    "description": "Public HTTP contract for the Q1/L1 lease-based job service. Normative behavioral rules are in semantics.v1.md."
   },
   "paths": {
     "/healthz": {

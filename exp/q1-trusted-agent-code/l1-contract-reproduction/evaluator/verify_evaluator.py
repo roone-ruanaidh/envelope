@@ -4,17 +4,32 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import socket
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
+from unittest.mock import patch
 
 from . import CONTRACT_VERSION, EVALUATOR_VERSION
-from .acceptance import run_acceptance
+from .acceptance import AcceptanceSuite, run_acceptance
 
 
-DEFAULT_FIXTURE_COMMAND = "python3 -m evaluator.fixtures.service"
+FIXTURE_RUNNER = (
+    "import runpy,sys;sys.path.insert(0,'.');"
+    "module=sys.argv.pop(1);runpy.run_module(module,run_name='__main__')"
+)
+DEFAULT_FIXTURE_COMMAND = shlex.join(
+    (
+        "/usr/bin/python3",
+        "-B",
+        "-I",
+        "-c",
+        FIXTURE_RUNNER,
+        "evaluator.fixtures.service",
+    )
+)
 
 EXPECTED_MUTANTS: dict[str, tuple[str, str, str]] = {
     "schema_extra": ("protocol", "protocol_and_schema", "undeclared properties"),
@@ -54,6 +69,7 @@ def _summarize_acceptance(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "passed": report.get("passed", False),
         "duration_ms": report.get("duration_ms"),
+        "infrastructure_failure": report.get("infrastructure_failure"),
         "startup_error": report.get("startup_error"),
         "failed_tests": failures,
         "failed_layers": sorted({test["layer"] for test in failures}),
@@ -69,7 +85,7 @@ def _run_fixture(command: str, mode: str, *, fail_fast: bool) -> dict[str, Any]:
         base_url=f"http://127.0.0.1:{port}",
         service_command=command,
         fail_fast=fail_fast,
-        extra_env={"CT_FIXTURE_MODE": mode},
+        extra_env={"Q1_L1_FIXTURE_MODE": mode},
     )
     return _summarize_acceptance(report)
 
@@ -85,6 +101,7 @@ def verify_bank(command: str, reference_repeats: int) -> dict[str, Any]:
         failures = observed["failed_tests"]
         correctly_rejected = (
             not observed["passed"]
+            and observed["infrastructure_failure"] is False
             and observed["startup_error"] is None
             and len(failures) == 1
             and failures[0]["layer"] == expected_layer
@@ -100,6 +117,19 @@ def verify_bank(command: str, reference_repeats: int) -> dict[str, Any]:
             "acceptance": observed,
         }
 
+    with patch.object(
+        AcceptanceSuite,
+        "test_protocol_and_schema",
+        side_effect=KeyError("injected evaluator fault"),
+    ):
+        evaluator_fault = _run_fixture(command, "reference", fail_fast=True)
+    evaluator_fault_ok = (
+        not evaluator_fault["passed"]
+        and evaluator_fault["infrastructure_failure"] is True
+        and len(evaluator_fault["failed_tests"]) == 1
+        and evaluator_fault["failed_tests"][0].get("failure_origin") == "evaluator"
+    )
+
     reference_ok = all(run["passed"] for run in references)
     mutants_ok = all(item["correctly_rejected"] for item in mutants.values())
     return {
@@ -107,7 +137,11 @@ def verify_bank(command: str, reference_repeats: int) -> dict[str, Any]:
         "contract_version": CONTRACT_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "fixture_command": command,
-        "passed": reference_ok and mutants_ok,
+        "passed": reference_ok and mutants_ok and evaluator_fault_ok,
+        "evaluator_fault_injection": {
+            "correctly_classified_inconclusive": evaluator_fault_ok,
+            "acceptance": evaluator_fault,
+        },
         "reference": {
             "expected_disposition": "accept",
             "repeat_count": reference_repeats,
@@ -122,6 +156,7 @@ def verify_bank(command: str, reference_repeats: int) -> dict[str, Any]:
                 item["correctly_rejected"] for item in mutants.values()
             ),
             "mutants_total": len(mutants),
+            "evaluator_faults_classified_as_infrastructure": int(evaluator_fault_ok),
         },
     }
 

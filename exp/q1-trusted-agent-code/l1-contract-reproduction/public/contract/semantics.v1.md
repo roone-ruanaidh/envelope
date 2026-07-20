@@ -6,7 +6,7 @@
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative. This document, the
 OpenAPI file, the Python dependency lock, and the mypy configuration together are the complete
-public acceptance contract for Envelope L1. A conflict between them is a contract error;
+public acceptance contract for Q1/L1. A conflict between them is a contract error;
 none silently overrides another.
 
 ## 1. Scope and execution profile
@@ -35,18 +35,18 @@ must be enumerated and approved during human review; none is approved by this co
 The evaluator starts the foreground command supplied as `SERVICE_COMMAND` with:
 
 ```text
-CT_HOST=<host from the supplied base URL>
-CT_PORT=<port from the supplied base URL>
-CT_DATABASE_PATH=<absolute path to an evaluator-owned SQLite file>
-CT_CLOCK_INITIAL_MS=<decimal integer in 0..9223372036854775807>
+Q1_L1_HOST=<host from the supplied base URL>
+Q1_L1_PORT=<port from the supplied base URL>
+Q1_L1_DATABASE_PATH=<absolute path to an evaluator-owned SQLite file>
+Q1_L1_CLOCK_INITIAL_MS=<decimal integer in 0..9223372036854775807>
 ```
 
 The supplied base URL uses unencrypted HTTP on `127.0.0.1` or `localhost`, with an explicit port
 and no credentials, query, fragment, or path prefix. The service is never evaluated over a remote
 or cloud network.
 
-`SERVICE_COMMAND` MUST remain in the foreground, bind `CT_HOST:CT_PORT`, become ready through
-`GET /healthz`, and exit with status zero after `SIGTERM`. It MUST use `CT_DATABASE_PATH` and MUST
+`SERVICE_COMMAND` MUST remain in the foreground, bind `Q1_L1_HOST:Q1_L1_PORT`, become ready through
+`GET /healthz`, and exit with status zero after `SIGTERM`. It MUST use `Q1_L1_DATABASE_PATH` and MUST
 NOT substitute in-memory or another undeclared storage. The evaluator uses a fresh database for a
 suite and the same path across that suite's restarts. It may use both graceful and abrupt restarts.
 
@@ -65,7 +65,7 @@ including an omitted or extra field, a boolean supplied as an integer, an out-of
 malformed UUID, returns `422` and `validation_error`.
 
 The evaluator sends `Content-Length` and no request body larger than 1,048,576 encoded bytes.
-Streaming, chunked, or larger request bodies are outside the L1 acceptance profile.
+Streaming, chunked, or larger request bodies are outside the Q1/L1 acceptance profile.
 
 String lengths are Unicode code-point counts. String comparisons are exact and case-sensitive,
 with no trimming, case folding, or Unicode normalization. The declared inclusive bounds are:
@@ -120,7 +120,7 @@ the process's current logical time. `PUT /_evaluator/clock` sets an absolute val
 value is a successful no-op. Setting a lower value returns `409 clock_rewind` without mutation.
 
 The clock is process-local and is deliberately **not persistent**. On every process start it is
-initialized from `CT_CLOCK_INITIAL_MS`. Before a restart, the evaluator supplies a nondecreasing
+initialized from `Q1_L1_CLOCK_INITIAL_MS`. Before a restart, the evaluator supplies a nondecreasing
 next logical time; this preserves monotonic time without making the clock part of durable service
 state. Evaluator-selected values always leave enough signed-int64 headroom for the requested lease
 TTL.
@@ -226,11 +226,11 @@ error is returned is otherwise unspecified and is not acceptance-tested.
 
 The concurrent same-key submission and lease claim/reclaim histories declared in Section 5 are
 linearizable at the stable evaluator clock. Mixed concurrent heartbeat, completion, and failure
-histories are not part of L1 acceptance; those operations are exercised sequentially. All
+histories are not part of Q1/L1 acceptance; those operations are exercised sequentially. All
 state needed to preserve jobs, idempotency, current token, lease metadata, and terminal outcomes is
 durable in SQLite. A success response MUST be sent only after its state transition is committed.
 
-Restarting the service with the same `CT_DATABASE_PATH` and restored logical time MUST preserve:
+Restarting the service with the same `Q1_L1_DATABASE_PATH` and restored logical time MUST preserve:
 
 - pending, live leased, succeeded, and failed jobs and their exact public fields;
 - idempotency-key association and replay behavior;
@@ -238,7 +238,7 @@ Restarting the service with the same `CT_DATABASE_PATH` and restored logical tim
 - stored result or failure.
 
 This applies after graceful shutdown and after abrupt process termination performed after an
-acknowledged response. Crashes during an in-flight operation are not exercised in L1.
+acknowledged response. Crashes during an in-flight operation are not exercised in Q1/L1.
 
 ## 8. Explicitly unspecified behavior
 
@@ -250,7 +250,7 @@ The following are intentionally unspecified and MUST NOT be enforced by hidden a
 - response headers not declared in OpenAPI;
 - behavior for undeclared query parameters, undeclared HTTP methods, or paths outside this surface;
 - SQLite schema, transaction mechanism, journal mode, indexes, and application module layout;
-- behavior when restarted with `CT_CLOCK_INITIAL_MS` below the last value supplied before shutdown,
+- behavior when restarted with `Q1_L1_CLOCK_INITIAL_MS` below the last value supplied before shutdown,
   because that is outside the evaluator lifecycle profile;
 - relative precedence for combined failures except the validation-first rule in section 6;
 - numeric exhaustion near the signed-int64 ceiling; evaluator clock values remain far below it.

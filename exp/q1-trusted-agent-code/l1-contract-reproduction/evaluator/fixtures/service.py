@@ -5,7 +5,7 @@ Run with::
     python3 -m evaluator.fixtures.service
 
 The independent behavioral reference and each deliberately defective variant share this process
-entry point.  ``CT_FIXTURE_MODE`` selects the behavior; see ``FIXTURE_MODES``.
+entry point.  ``Q1_L1_FIXTURE_MODE`` selects the behavior; see ``FIXTURE_MODES``.
 This module intentionally uses only the Python standard library so the fixture
 bank cannot silently inherit dependencies from the candidate implementation.
 """
@@ -70,23 +70,23 @@ class Configuration:
 
     @classmethod
     def from_environment(cls) -> "Configuration":
-        host = os.environ.get("CT_HOST", "127.0.0.1")
+        host = os.environ.get("Q1_L1_HOST", "127.0.0.1")
         try:
-            port = int(os.environ.get("CT_PORT", "8000"))
-            clock_initial_ms = int(os.environ.get("CT_CLOCK_INITIAL_MS", "0"))
+            port = int(os.environ.get("Q1_L1_PORT", "8000"))
+            clock_initial_ms = int(os.environ.get("Q1_L1_CLOCK_INITIAL_MS", "0"))
         except ValueError as exc:
             raise SystemExit(f"invalid integer fixture configuration: {exc}") from exc
         if not 0 <= port <= 65_535:
-            raise SystemExit("CT_PORT must be between 0 and 65535")
+            raise SystemExit("Q1_L1_PORT must be between 0 and 65535")
         if not 0 <= clock_initial_ms <= MAX_TIME_MS:
-            raise SystemExit(f"CT_CLOCK_INITIAL_MS must be between 0 and {MAX_TIME_MS}")
+            raise SystemExit(f"Q1_L1_CLOCK_INITIAL_MS must be between 0 and {MAX_TIME_MS}")
         database_path = Path(
-            os.environ.get("CT_DATABASE_PATH", "/tmp/ct-evaluator-fixture.sqlite3")
+            os.environ.get("Q1_L1_DATABASE_PATH", "/tmp/q1-l1-evaluator-fixture.sqlite3")
         )
-        mode = os.environ.get("CT_FIXTURE_MODE", "reference")
+        mode = os.environ.get("Q1_L1_FIXTURE_MODE", "reference")
         if mode not in FIXTURE_MODES:
             choices = ", ".join(sorted(FIXTURE_MODES))
-            raise SystemExit(f"unknown CT_FIXTURE_MODE {mode!r}; expected one of: {choices}")
+            raise SystemExit(f"unknown Q1_L1_FIXTURE_MODE {mode!r}; expected one of: {choices}")
         return cls(host, port, database_path, clock_initial_ms, mode)
 
 

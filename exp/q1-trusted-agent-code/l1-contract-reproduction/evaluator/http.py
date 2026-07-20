@@ -139,7 +139,7 @@ class HTTPClient:
         watchdog = Thread(
             target=self._abort_at_deadline,
             args=(connection, socket_holder, response_holder, deadline, done, expired),
-            name="ct-http-deadline",
+            name="q1-l1-http-deadline",
             daemon=True,
         )
         watchdog.start()

@@ -1,4 +1,4 @@
-"""Black-box acceptance evaluator for Envelope L1."""
+"""Black-box acceptance evaluator for Q1/L1."""
 
 from __future__ import annotations
 

@@ -1,24 +1,11 @@
 model = "gpt-5"
 model_reasoning_effort = "high"
-approval_policy = "never"
-web_search = "disabled"
-default_permissions = "l1"
-
-[features]
-apps = false
-multi_agent = false
 
 [shell_environment_policy]
 include_only = ["HOME", "LANG", "LC_ALL", "PATH", "TERM"]
 
-[permissions.l1.filesystem]
-":minimal" = "read"
-"~/.codex" = "deny"
-
-[permissions.l1.filesystem.":workspace_roots"]
-"." = "write"
-".venv" = "read"
-"public/contract" = "read"
-
-[permissions.l1.network]
-enabled = false
+[shell_environment_policy.set]
+MYPY_CACHE_DIR = "/tmp/q1-l1-mypy-cache"
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONNOUSERSITE = "1"
+XDG_CACHE_HOME = "/tmp/q1-l1-cache"
