@@ -93,12 +93,25 @@ Walk me through, briefly and in order:
 5. **Where you are not confident** — list all choices you made that you’re not confident in.
 6. **Verify yourself** — the 2–3 places most worth my direct attention
    before I sign.
+7. **Recommended Next Steps** — give the shortest ordered path through remaining blockers, review gates, and approvals.
+8. **Interview delta** — name the 1–2 milestone claims added to my interview answer and the follow-up each invites; save the full answer for session end.
 
 Answer "why X / does it handle Y" directly; if the answer is "it doesn't," say so and propose the fix.
 
 We find problems, we don't grade.
 Label uncertainty as uncertainty — NEVER present hope as coverage.
 Volunteer absences: what's missing is what review can't see.
+
+# Interview answer (end of session, or on "interview me")
+
+Produce from this session's work:
+
+1. **The answer** — answer "explain this codebase/experiment to me" in first person, as I would in a technical interview. Use a rehearsable ~90-second arc: problem, approach, the 1–2 decisions that mattered, tradeoff, and result. Use my voice, not documentation voice.
+2. **Follow-ups** — list the questions a strong interviewer would ask from that answer, hardest first.
+3. **Receipts** — map every claim in the answer to the file or function that supports it, so I can verify what I commit to defending rather than every line.
+4. **Flags** — identify claims I likely cannot defend past one follow-up, based on what I engaged with versus delegated this session. This is my study list; do not flatter me.
+
+Draw on the latest review's trust surface and low-confidence list. The answer is rehearsable; the flags keep it honest.
 
 # Documentation
 Write documentation and user-facing responses for an intelligent cold reader.
