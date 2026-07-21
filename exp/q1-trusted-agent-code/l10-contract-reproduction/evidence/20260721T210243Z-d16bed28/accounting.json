@@ -1,0 +1,66 @@
+{
+  "agent": {
+    "invocations": [
+      {
+        "charge": {
+          "amount": "unknown",
+          "currency": "unknown",
+          "reason": "codex exec JSONL reports token usage but no monetary charge"
+        },
+        "duration_seconds": 810.5553922919789,
+        "model_requested": "gpt-5.6-luna",
+        "reasoning_effort_requested": "max",
+        "tokens": {
+          "cached_input_tokens": 3998290,
+          "input_tokens": 4124256,
+          "output_tokens": 56734,
+          "reasoning_output_tokens": 29260,
+          "total_tokens": "unknown"
+        }
+      }
+    ],
+    "monetary_cost": "unknown",
+    "total_elapsed_seconds": 810.5553922919789
+  },
+  "candidate_vm": {
+    "lifetime_seconds": "unknown",
+    "monetary_cost": "unknown",
+    "observed_existing_at": "2026-07-21T21:06:09.760005+00:00",
+    "observed_interval_lower_bound_seconds": 811.5606806249125,
+    "provisioning_started_at": "2026-07-21T21:03:13.485330+00:00",
+    "right_censored": false,
+    "teardown_finished_at": "2026-07-21T21:19:41.491929+00:00",
+    "teardown_verified": true
+  },
+  "evaluator": {
+    "monetary_cost": "unknown",
+    "standing_provisioning_and_idle": "excluded",
+    "workload_seconds": 29.979570208350196
+  },
+  "human": {
+    "active_minutes": "unknown",
+    "monetary_cost": "unknown",
+    "review_wait_upper_bound_seconds": "unknown"
+  },
+  "overlap": {
+    "nonexclusive": true,
+    "rule": "Agent, candidate-VM, and evaluator intervals overlap trusted-machine and wall intervals; no category total may be summed into cost or latency."
+  },
+  "trusted_machine": {
+    "artifact_self_recording_tail_seconds": "unknown",
+    "coverage": "Execute and finalization elapsed values are monotonic lower bounds ending before their containing artifacts are written. Command records are completed scoped intervals. Pending and terminal index scan-and-hash durations are in their indexes; serialization, durable write, projection, and final verification tails are unknown.",
+    "execute_elapsed_lower_bound_seconds": 1018.3230783339823,
+    "execute_recorded_active_seconds": 1018.1636174173327,
+    "finalization_elapsed_lower_bound_seconds": 0.0,
+    "monetary_cost": "unknown",
+    "pending_index_scan_hash_elapsed_seconds": "evidence-index.json:inventory_scan_hash_elapsed_seconds"
+  },
+  "wall": {
+    "elapsed_lower_bound_seconds": 1018.301643,
+    "post_cutoff_tail_seconds": "unknown",
+    "recorded_cutoff_at": "2026-07-21T21:19:41.812472+00:00",
+    "review_received_at": null,
+    "review_requested_at": null,
+    "run_started_at": "2026-07-21T21:02:43.510829+00:00"
+  }
+}

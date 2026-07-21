@@ -1,0 +1,7 @@
+{
+  "service_command": [
+    ".venv/bin/python3",
+    "main.py"
+  ],
+  "status": "declared_complete"
+}

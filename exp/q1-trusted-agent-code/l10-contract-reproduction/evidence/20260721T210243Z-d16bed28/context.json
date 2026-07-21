@@ -1,0 +1,17 @@
+{
+  "loop": {
+    "id": "Q1/L10",
+    "intervention": "explicit_schema_const_types"
+  },
+  "prior_loop": {
+    "loop_id": "Q1/L9",
+    "result_commit": "5b1e496bc3ee5bc7c673668c0cabb875896af801",
+    "run_id": "20260721T205408Z-36bfc6d1"
+  },
+  "schema_version": 1,
+  "workload": {
+    "id": "q1-lease-service-v1",
+    "resource_namespace": "q1-l1",
+    "source_loop": "Q1/L1"
+  }
+}
