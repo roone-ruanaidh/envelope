@@ -1,0 +1,23 @@
+{
+  "loop": {
+    "id": "Q1/L6",
+    "intervention": "hermetic_candidate_home_redaction"
+  },
+  "prior_loop": {
+    "loop_id": "Q1/L5",
+    "result_commit": "ae60848ae9465019a547d53bd95f62a1fa12144f",
+    "run_id": "20260721T173838Z-aef45487"
+  },
+  "schema_version": 1,
+  "setup": {
+    "candidate_boundary_qualification": {
+      "included_in_evidence": true,
+      "measured_as_task_cost": false
+    }
+  },
+  "workload": {
+    "id": "q1-lease-service-v1",
+    "resource_namespace": "q1-l1",
+    "source_loop": "Q1/L1"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "omissions": [],
+  "redactions": [
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 3,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 6,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 7,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 8,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 9,
+      "stream": "record"
+    },
+    {
+      "count": 22,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "stdout"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "record"
+    },
+    {
+      "count": 19,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stdout"
+    },
+    {
+      "count": 5,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 11,
+      "stream": "record"
+    },
+    {
+      "count": 8,
+      "item": "HOST_HOME",
+      "sequence": 14,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 17,
+      "stream": "record"
+    },
+    {
+      "count": 2,
+      "item": "HOST_REPOSITORY",
+      "path": "isolation-validation.json",
+      "reason": "host-local paths are normalized in public evidence"
+    }
+  ]
+}

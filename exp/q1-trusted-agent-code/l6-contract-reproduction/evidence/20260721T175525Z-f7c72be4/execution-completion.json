@@ -1,0 +1,10 @@
+{
+  "artifact_self_recording_tail_seconds": "unknown",
+  "completed_at": "2026-07-21T17:58:54.298320+00:00",
+  "contract_commit": "8c96fd15ab25d4de80b7208662b94b04b2df9210",
+  "index_path": "evidence-index.json",
+  "index_sha256": "a8e0c077c1db3fb28c8325889276d808c33f026ca8457a91ff097962692d64ec",
+  "kind": "execution",
+  "run_id": "20260721T175525Z-f7c72be4",
+  "version": 1
+}
