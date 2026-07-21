@@ -1,0 +1,9 @@
+{
+  "name": "lib",
+  "dependencies": {
+    "@openai/codex": {
+      "version": "0.144.6",
+      "overridden": false
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "charge": {
+    "amount": "unknown",
+    "currency": "unknown",
+    "reason": "codex exec JSONL reports token usage but no monetary charge"
+  },
+  "duration_seconds": 1.7886355830123648,
+  "model_requested": "gpt-5.6-luna",
+  "reasoning_effort_requested": "max",
+  "tokens": {
+    "cached_input_tokens": "unknown",
+    "input_tokens": "unknown",
+    "output_tokens": "unknown",
+    "reasoning_output_tokens": "unknown",
+    "total_tokens": "unknown"
+  }
+}

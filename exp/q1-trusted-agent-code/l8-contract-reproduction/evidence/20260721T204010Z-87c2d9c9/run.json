@@ -1,0 +1,153 @@
+{
+  "agent_attempts_invoked": 1,
+  "automated_phase_deadline_seconds": 10800,
+  "automated_recorded_cutoff_at": "2026-07-21T20:43:42.195539+00:00",
+  "automated_work_deadline_seconds": 10500,
+  "behavior_attempts": [],
+  "bootstrap_attempts": [],
+  "candidate_boundary_validated": true,
+  "candidate_instance": "q1-l1-candidate-20260721t204010z-87c2d9c9",
+  "candidate_vm_observed_existing_at": "2026-07-21T20:43:39.072109+00:00",
+  "candidate_vm_observed_interval_lower_bound_seconds": 2.5868376250145957,
+  "candidate_vm_provisioning_started_at": "2026-07-21T20:40:40.416395+00:00",
+  "candidate_vm_teardown_finished_at": "2026-07-21T20:43:41.863501+00:00",
+  "candidate_vm_teardown_verified": true,
+  "cleanup_and_pending_closure_deadline_seconds": 300,
+  "cleanup_finished_at": "2026-07-21T20:43:42.002843+00:00",
+  "cleanup_started_at": "2026-07-21T20:43:41.658965+00:00",
+  "completed_attempts": 0,
+  "contract_commit": "9846c7c3a9bfa5f958a54243d278fb5570a8f3e5",
+  "disposition_reason": "agent attempt 1 exited 1",
+  "evaluated_attempts": [],
+  "evaluator_cleanup_required": true,
+  "evaluator_run_root_created": true,
+  "evaluator_validated": true,
+  "execute_elapsed_lower_bound_seconds": 211.92957904201467,
+  "failure_history": [
+    {
+      "detail": "agent attempt 1 exited 1",
+      "stage": "agent_invocation"
+    }
+  ],
+  "failure_stage": "agent_invocation",
+  "identified_attempts": [],
+  "login_attempted": true,
+  "loop_id": "Q1/L8",
+  "redactions": [
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 3,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 6,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 7,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 8,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 9,
+      "stream": "record"
+    },
+    {
+      "count": 22,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "stdout"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "record"
+    },
+    {
+      "count": 19,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stdout"
+    },
+    {
+      "count": 5,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 11,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 21,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 22,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 23,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 24,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 25,
+      "stream": "record"
+    },
+    {
+      "count": 8,
+      "item": "HOST_HOME",
+      "sequence": 29,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 32,
+      "stream": "record"
+    },
+    {
+      "count": 2,
+      "item": "HOST_REPOSITORY",
+      "path": "isolation-validation.json",
+      "reason": "host-local paths are normalized in public evidence"
+    }
+  ],
+  "run_id": "20260721T204010Z-87c2d9c9",
+  "run_started_at": "2026-07-21T20:40:10.263837+00:00",
+  "status": "Inconclusive",
+  "transfer_attempts_started": [],
+  "transferred_attempts": [],
+  "typing_attempts": [],
+  "workload_id": "q1-lease-service-v1"
+}
