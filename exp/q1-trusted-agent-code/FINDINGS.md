@@ -29,3 +29,9 @@ The candidate remains a fresh no-mount VM with no command network, unreadable au
 ## Q1/L4 handoff
 
 The separately reviewed Q1/L4 contract adopts this narrow correction, bounded probe diagnostics, and exact pre-agent qualification with zero residue. This finding changes no workload, acceptance rule, disposition, or human boundary; Q1/L4 execution still requires separate explicit approval.
+
+## Q1/L5 observation
+
+Q1/L5's exact boundary qualification passed, then measured execution stopped in evaluator dispatch validation with zero agent attempts. The test derived candidate home from the evaluator's home basename, making `HOST_HOME` and `CANDIDATE_HOME` identical; one redaction label necessarily consumed both values. This is environment-dependent test state and a real candidate-home derivation error, not a model result.
+
+The indexed `redactions.json` generically says the API key was sent through stdin. The command record and run state show it was only available to the runner: no candidate login or `codex exec` occurred. Preserve the bound evidence unchanged and treat that sentence as inaccurate. Q1/L5's narrower outer stopping sentence was also an agent drafting error; the pre-existing human approval permits at most Q1/L5–L7 until the first recorded agent invocation. Neither correction changes Q1/L5's `Inconclusive` disposition.

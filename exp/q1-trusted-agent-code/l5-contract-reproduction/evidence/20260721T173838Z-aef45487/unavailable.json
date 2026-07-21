@@ -1,0 +1,46 @@
+[
+  {
+    "observation": "validated evaluator and isolated runtime",
+    "reason": "execution stopped before evaluator validation completed"
+  },
+  {
+    "observation": "completed implementation-agent usage",
+    "reason": "no implementation attempt declared completion"
+  },
+  {
+    "observation": "candidate source manifest and settlement gates",
+    "reason": "no implementation attempt declared completion"
+  },
+  {
+    "observation": "human source-review attention and attestation",
+    "reason": "the run did not reach the human source-review gate"
+  },
+  {
+    "observation": "agent monetary charge",
+    "reason": "codex exec JSONL reports usage but no charge"
+  },
+  {
+    "observation": "agent cache-write token usage",
+    "reason": "pinned codex exec JSONL does not report cache-write tokens"
+  },
+  {
+    "observation": "trusted-machine monetary cost",
+    "reason": "the trusted host exposes no monetary meter"
+  },
+  {
+    "observation": "candidate-VM monetary cost",
+    "reason": "the candidate Lima instance exposes no monetary meter"
+  },
+  {
+    "observation": "evaluator-workload monetary cost",
+    "reason": "the pre-existing evaluator exposes no workload monetary meter"
+  },
+  {
+    "observation": "human-review monetary cost",
+    "reason": "human active minutes do not provide a monetary rate"
+  },
+  {
+    "observation": "immutable model backend revision",
+    "reason": "the requested gpt-5.6-luna identifier is not an immutable backend snapshot"
+  }
+]
