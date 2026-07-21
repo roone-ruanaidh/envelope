@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "steps": [
+    {
+      "command_sequence": 38,
+      "label": "extract transferred candidate",
+      "passed": true
+    },
+    {
+      "command_sequence": 39,
+      "label": "create public directory",
+      "passed": true
+    },
+    {
+      "command_sequence": 40,
+      "label": "install public contract",
+      "passed": true
+    },
+    {
+      "command_sequence": 41,
+      "label": "verify transferred candidate",
+      "passed": true
+    },
+    {
+      "command_sequence": 42,
+      "label": "create clean virtual environment",
+      "passed": true
+    },
+    {
+      "command_sequence": 43,
+      "label": "install locked dependencies",
+      "passed": true
+    },
+    {
+      "command_sequence": 44,
+      "label": "check locked dependencies",
+      "passed": true
+    }
+  ]
+}

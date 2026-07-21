@@ -1,0 +1,9 @@
+{
+  "candidate_identity_sha256": "1130b37476fae1a7154790949f784e9230c88015a3062ef46e6b51c607a2213c",
+  "manifest_sha256": "ce1d7baa0a0b52792f96585ac417b158ae4186e677cda7b3e3990390ce20f5af",
+  "scheme": "sha256(canonical-json(manifest_sha256,service_command))",
+  "service_command": [
+    ".venv/bin/python",
+    "service.py"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "mode": 436,
+      "path": "Makefile",
+      "sha256": "4d136d57d8d5aefb0ee429337bf14e604fc42420edb84bf61d36827f8f2d9207",
+      "size": 135
+    },
+    {
+      "mode": 436,
+      "path": "service.py",
+      "sha256": "854f0a2caabcd02a09721b5052eaac2bf7fd90d8334c6708ced5e3f5831786fa",
+      "size": 32393
+    }
+  ],
+  "version": 1
+}

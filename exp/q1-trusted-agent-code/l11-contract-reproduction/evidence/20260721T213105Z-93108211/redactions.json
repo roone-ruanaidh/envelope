@@ -1,0 +1,184 @@
+{
+  "omissions": [
+    {
+      "item": "OpenAI API key",
+      "reason": "candidate login was attempted with secret stdin and the control input was never captured"
+    }
+  ],
+  "redactions": [
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 3,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 6,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 7,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 8,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 9,
+      "stream": "record"
+    },
+    {
+      "count": 22,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "stdout"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 10,
+      "stream": "record"
+    },
+    {
+      "count": 19,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stdout"
+    },
+    {
+      "count": 5,
+      "item": "HOST_HOME",
+      "sequence": 11,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 11,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 21,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 22,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 23,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 24,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 25,
+      "stream": "record"
+    },
+    {
+      "count": 53,
+      "item": "HOST_HOME",
+      "sequence": 26,
+      "stream": "stdout"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 28,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 30,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 31,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 32,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 35,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_TEMP",
+      "sequence": 36,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 38,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 40,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 41,
+      "stream": "record"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 45,
+      "stream": "record"
+    },
+    {
+      "count": 8,
+      "item": "HOST_HOME",
+      "sequence": 48,
+      "stream": "stderr"
+    },
+    {
+      "count": 1,
+      "item": "HOST_REPOSITORY",
+      "sequence": 51,
+      "stream": "record"
+    },
+    {
+      "count": 2,
+      "item": "HOST_REPOSITORY",
+      "path": "isolation-validation.json",
+      "reason": "host-local paths are normalized in public evidence"
+    }
+  ]
+}

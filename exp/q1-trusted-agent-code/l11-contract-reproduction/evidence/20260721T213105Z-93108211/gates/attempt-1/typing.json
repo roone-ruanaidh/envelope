@@ -1,0 +1,9 @@
+{
+  "direct_command_sequence": 45,
+  "infrastructure_failure": true,
+  "limit_breach": null,
+  "passed": false,
+  "return_code": 125,
+  "timed_out": false,
+  "wrapper_completed": true
+}
