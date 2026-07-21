@@ -28,7 +28,6 @@ description = "Q1/L1 candidate authoring: public contract plus candidate workspa
 
 [permissions.q1_l1.filesystem.":workspace_roots"]
 "." = "write"
-".codex" = "deny"
 ".venv" = "read"
 "AGENTS.md" = "read"
 "public/contract" = "read"

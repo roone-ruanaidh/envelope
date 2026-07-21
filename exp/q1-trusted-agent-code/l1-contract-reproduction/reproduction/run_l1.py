@@ -7074,7 +7074,7 @@ Qualification failure categories: `{failures}`
 
 ## Disposition
 
-**Inconclusive.** The exact candidate-boundary qualification failed after its durable attempt marker. Q1/L4 cannot execute or retry from this contract.
+**Inconclusive.** The exact candidate-boundary qualification failed after its durable attempt marker. {ACTIVE_LOOP.loop_id} cannot execute or retry from this contract.
 
 ## Effect on Q1
 
@@ -7082,7 +7082,7 @@ Q1 gains a reproducible harness finding but no task-cost observation. The failed
 
 ## Possible next loops
 
-None authorized. The evidence returns to broad human review; this result selects no next inquiry.
+This result authorizes no next loop. Continue only under an existing human-approved troubleshooting sequence; otherwise return the evidence for broad human review.
 
 ## Promotion candidate
 

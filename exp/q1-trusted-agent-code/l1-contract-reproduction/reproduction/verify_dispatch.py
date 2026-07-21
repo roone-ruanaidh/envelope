@@ -28,6 +28,8 @@ L2_ROOT = ROOT.parent / "l2-contract-reproduction"
 L2_RUNNER = L2_ROOT / "reproduction" / "run_l2.py"
 L4_ROOT = ROOT.parent / "l4-contract-reproduction"
 L4_RUNNER = L4_ROOT / "reproduction" / "run_l4.py"
+L5_ROOT = ROOT.parent / "l5-contract-reproduction"
+L5_RUNNER = L5_ROOT / "reproduction" / "run_l5.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -52,6 +54,18 @@ DERIVED_LOOPS = (
         "root": L4_ROOT,
         "runner": L4_RUNNER,
         "qualification": L4_ROOT / "build" / "candidate-boundary-qualification",
+    },
+    {
+        "id": "Q1/L5",
+        "intervention": "single_codex_metadata_authority",
+        "prior": {
+            "loop_id": "Q1/L4",
+            "result_commit": "4e83baae3884e23dd7c1b59293800218ab157006",
+            "run_id": "20260721T170944Z-919d5660",
+        },
+        "root": L5_ROOT,
+        "runner": L5_RUNNER,
+        "qualification": L5_ROOT / "build" / "candidate-boundary-qualification",
     },
 )
 sys.path.insert(0, str(ROOT / "reproduction"))
@@ -813,8 +827,10 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertNotIn("extends", profile)
         workspace = profile["filesystem"][":workspace_roots"]
         self.assertNotIn(".agents", workspace)
+        self.assertNotIn(".codex", workspace)
         self.assertNotIn("**/AGENTS.md", workspace)
         self.assertEqual(workspace["AGENTS.md"], "read")
+        self.assertEqual(profile["filesystem"]["~/.codex"], "deny")
         for feature in ("apps", "multi_agent", "plugins", "remote_plugin"):
             with self.subTest(feature=feature):
                 self.assertFalse(requirements["features"][feature])
@@ -1576,7 +1592,7 @@ class ContractMechanicsTests(unittest.TestCase):
 
     def test_failed_candidate_boundary_qualification_closes_inconclusive(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            loop_root = Path(temporary) / "l4-contract-reproduction"
+            loop_root = Path(temporary) / "l5-contract-reproduction"
             qualification_root = loop_root / "build" / "candidate-boundary-qualification"
             cleanup = Mock(return_value=[])
 
@@ -1594,9 +1610,9 @@ class ContractMechanicsTests(unittest.TestCase):
                     run_l1,
                     "ACTIVE_LOOP",
                     run_l1.LoopContext(
-                        loop_id="Q1/L4",
+                        loop_id="Q1/L5",
                         root=loop_root,
-                        intervention="qualified_candidate_boundary",
+                        intervention="single_codex_metadata_authority",
                     ),
                 ),
                 patch.object(run_l1, "EVIDENCE_ROOT", loop_root / "evidence"),
@@ -1622,7 +1638,11 @@ class ContractMechanicsTests(unittest.TestCase):
             self.assertTrue((terminal / run_l1.QUALIFICATION_INDEX_NAME).is_file())
             self.assertTrue((terminal / run_l1.QUALIFICATION_COMPLETION_NAME).is_file())
             self.assertTrue((terminal / "terminal-RESULT.md").is_file())
-            self.assertIn("**Inconclusive.**", (loop_root / "RESULT.md").read_text())
+            result_text = (loop_root / "RESULT.md").read_text()
+            self.assertIn("**Inconclusive.**", result_text)
+            self.assertIn("Q1/L5 cannot execute or retry", result_text)
+            self.assertNotIn("Q1/L4", result_text)
+            self.assertIn("existing human-approved troubleshooting sequence", result_text)
             self.assertEqual(
                 (loop_root / "RESULT.md").read_bytes(),
                 (terminal / "terminal-RESULT.md").read_bytes(),
