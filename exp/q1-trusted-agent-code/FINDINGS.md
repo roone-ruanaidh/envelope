@@ -39,3 +39,7 @@ The indexed `redactions.json` generically says the API key was sent through stdi
 ## Q1/L6 observation
 
 Q1/L6 passed the prior dispatch failure and bootstrapped a boundary-valid candidate, then its trusted Lima observer rejected the live record before login with zero agent attempts. A disposable no-model diagnostic showed that Lima canonically omits the candidate's empty `mounts`, evaluator-only `param`, and inactive `vmOpts.qemu`, while the mock fixture invented them. The diagnostic VM was deleted and only the evaluator remains. Q1/L7 will require those candidate omissions exactly, keep evaluator and unknown-field checks strict, and change no workload or acceptance meaning.
+
+## Q1/L7 observation
+
+Q1/L7 passed the harness through candidate capture, API-key login, and the first `codex exec`. Both API transports then returned `401 invalid_api_key` before model generation; no completion or usage event exists, so tokens and charge remain `unknown`. The closed terminal tree is preserved locally but withheld from Git because the provider echoed a stable masked key fingerprint. Q1/L7 recorded one agent invocation, ending the approved troubleshooting sequence. A publishable redacted projection, credential replacement, access preflight, or later loop requires a new human decision.
