@@ -4911,6 +4911,20 @@ def _mark_inconclusive(state: dict[str, Any], stage: str, detail: str) -> None:
         state["disposition_reason"] = normalized
 
 
+def _api_key_omissions(state: dict[str, Any]) -> list[dict[str, str]]:
+    if state.get("login_attempted") is not True:
+        return []
+    return [
+        {
+            "item": "OpenAI API key",
+            "reason": (
+                "candidate login was attempted with secret stdin and the control "
+                "input was never captured"
+            ),
+        }
+    ]
+
+
 def _require_execution_deadline_open(
     *,
     final_phase_deadline: float,
@@ -4995,12 +5009,7 @@ def _write_run_outputs(
         _write_json(
             evidence / "redactions.json",
             {
-                "omissions": [
-                    {
-                        "item": "OpenAI API key",
-                        "reason": "secret control input was sent through stdin and never captured",
-                    }
-                ],
+                "omissions": _api_key_omissions(state),
                 "redactions": state.get("redactions", []),
             },
             reserve_closure=reserve_terminal,
@@ -5149,6 +5158,7 @@ def _perform_execution_work(
     state["candidate_boundary_validated"] = True
     _capture_candidate_environment(recorder, evidence, instance)
     context["login_attempted"] = True
+    state["login_attempted"] = True
     _login(recorder, instance, api_key)
     api_key = ""
     try:
@@ -5391,6 +5401,7 @@ def _execute_locked(contract_commit: str, deadline: ExecutionDeadline) -> int:
         "evaluated_attempts": [],
         "identified_attempts": [],
         "loop_id": ACTIVE_LOOP.loop_id,
+        "login_attempted": False,
         "run_id": run_id,
         "run_started_at": run_started_at,
         "automated_phase_deadline_seconds": AUTOMATED_PHASE_TIMEOUT_SECONDS,

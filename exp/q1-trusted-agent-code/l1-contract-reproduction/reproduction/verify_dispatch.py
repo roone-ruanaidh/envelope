@@ -30,6 +30,8 @@ L4_ROOT = ROOT.parent / "l4-contract-reproduction"
 L4_RUNNER = L4_ROOT / "reproduction" / "run_l4.py"
 L5_ROOT = ROOT.parent / "l5-contract-reproduction"
 L5_RUNNER = L5_ROOT / "reproduction" / "run_l5.py"
+L6_ROOT = ROOT.parent / "l6-contract-reproduction"
+L6_RUNNER = L6_ROOT / "reproduction" / "run_l6.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -66,6 +68,18 @@ DERIVED_LOOPS = (
         "root": L5_ROOT,
         "runner": L5_RUNNER,
         "qualification": L5_ROOT / "build" / "candidate-boundary-qualification",
+    },
+    {
+        "id": "Q1/L6",
+        "intervention": "hermetic_candidate_home_redaction",
+        "prior": {
+            "loop_id": "Q1/L5",
+            "result_commit": "ae60848ae9465019a547d53bd95f62a1fa12144f",
+            "run_id": "20260721T173838Z-aef45487",
+        },
+        "root": L6_ROOT,
+        "runner": L6_RUNNER,
+        "qualification": L6_ROOT / "build" / "candidate-boundary-qualification",
     },
 )
 sys.path.insert(0, str(ROOT / "reproduction"))
@@ -682,12 +696,15 @@ class CandidateBoundaryReportTests(unittest.TestCase):
             }
         )
         secret = "sk-proj-" + "x" * 30
+        host_home = Path("/home/test-host")
+        host_repository = host_home / "workspace" / "ev"
+        candidate_home = Path("/home/test-host.guest")
         diagnostic = (
-            str(verify_candidate_boundary.HOST_REPOSITORY)
+            str(host_repository)
             + " "
-            + str(verify_candidate_boundary.HOST_HOME)
+            + str(host_home)
             + " "
-            + f"/home/{verify_candidate_boundary.HOST_HOME.name}"
+            + str(candidate_home)
             + " "
             + secret
             + " "
@@ -701,6 +718,9 @@ class CandidateBoundaryReportTests(unittest.TestCase):
         with (
             patch.object(verify_candidate_boundary, "_authority_hashes", return_value=authority),
             patch.object(verify_candidate_boundary, "_run_lima", side_effect=results),
+            patch.object(verify_candidate_boundary, "HOST_HOME", host_home),
+            patch.object(verify_candidate_boundary, "HOST_REPOSITORY", host_repository),
+            patch.object(verify_candidate_boundary, "CANDIDATE_HOME", candidate_home),
             patch.dict(os.environ, {"OPENAI_API_KEY": secret}),
         ):
             report = verify_candidate_boundary.verify("q1-l1-test")
@@ -716,11 +736,33 @@ class CandidateBoundaryReportTests(unittest.TestCase):
         )
         encoded = json.dumps(process)
         self.assertNotIn(secret, encoded)
-        self.assertNotIn(str(verify_candidate_boundary.HOST_REPOSITORY), encoded)
-        self.assertNotIn(str(verify_candidate_boundary.HOST_HOME), encoded)
+        self.assertNotIn(str(host_repository), encoded)
+        self.assertNotIn(str(host_home), encoded)
+        self.assertNotIn(str(candidate_home), encoded)
         self.assertEqual(
             {record["item"] for record in process["stderr"]["redactions"]},
             {"CANDIDATE_HOME", "HOST_HOME", "HOST_REPOSITORY", "OPENAI_API_KEY"},
+        )
+
+    def test_probe_redaction_deterministically_handles_identical_homes(self) -> None:
+        shared_home = Path("/home/evaluator.guest")
+        host_repository = shared_home / "workspace" / "ev"
+        with (
+            patch.object(verify_candidate_boundary, "HOST_HOME", shared_home),
+            patch.object(verify_candidate_boundary, "HOST_REPOSITORY", host_repository),
+            patch.object(verify_candidate_boundary, "CANDIDATE_HOME", shared_home),
+            patch.dict(os.environ, {"OPENAI_API_KEY": ""}),
+        ):
+            public, records = verify_candidate_boundary._public_safe_probe_text(
+                f"{host_repository} {shared_home} {shared_home}"
+            )
+        self.assertEqual(public, "[HOST_REPOSITORY] [HOST_HOME] [HOST_HOME]")
+        self.assertEqual(
+            records,
+            [
+                {"count": 1, "item": "HOST_REPOSITORY"},
+                {"count": 2, "item": "HOST_HOME"},
+            ],
         )
 
     def test_probe_diagnostics_do_not_change_acceptance(self) -> None:
@@ -865,6 +907,10 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertIn('codex-cli 0.144.6', bootstrap)
         self.assertNotIn("findmnt --json", bootstrap)
         self.assertEqual(run_l1.CODEX_VERSION, "codex-cli 0.144.6")
+        self.assertEqual(
+            str(verify_candidate_boundary.CANDIDATE_HOME),
+            run_l1._expected_lima_user()["home"],
+        )
         loop = (ROOT / "LOOP.md").read_text(encoding="utf-8")
         self.assertIn("`codex-cli 0.144.6`", loop)
         self.assertIn("`gpt-5.6-luna`", loop)
@@ -2129,6 +2175,13 @@ class ContractMechanicsTests(unittest.TestCase):
             )
         self.assertEqual(events, ["write", "verify"])
         recorder.clear_protected_values.assert_called_once_with()
+
+    def test_api_key_omission_requires_candidate_login_attempt(self) -> None:
+        self.assertEqual(run_l1._api_key_omissions({"login_attempted": False}), [])
+        omission = run_l1._api_key_omissions({"login_attempted": True})
+        self.assertEqual(len(omission), 1)
+        self.assertEqual(omission[0]["item"], "OpenAI API key")
+        self.assertIn("candidate login", omission[0]["reason"])
 
     def test_hard_completion_barrier_leaves_no_execution_receipt(self) -> None:
         deadline = Mock()

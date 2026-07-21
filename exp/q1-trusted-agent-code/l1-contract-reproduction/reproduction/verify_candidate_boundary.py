@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import pwd
 import re
 import stat
 import subprocess
@@ -18,6 +19,7 @@ from typing import Any, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 HOST_REPOSITORY = ROOT.parents[2]
 HOST_HOME = Path.home().resolve()
+CANDIDATE_HOME = Path("/home") / f"{pwd.getpwuid(os.getuid()).pw_name}.guest"
 PROBE_STREAM_RETENTION_BYTES = 4 * 1024
 EXPECTED_PROBE = {
     "external_command_network": "blocked",
@@ -131,7 +133,7 @@ def _public_safe_probe_text(value: str) -> tuple[str, list[dict[str, Any]]]:
     replacements = [
         (str(HOST_REPOSITORY), "[HOST_REPOSITORY]", "HOST_REPOSITORY"),
         (str(HOST_HOME), "[HOST_HOME]", "HOST_HOME"),
-        (f"/home/{HOST_HOME.name}", "[CANDIDATE_HOME]", "CANDIDATE_HOME"),
+        (str(CANDIDATE_HOME), "[CANDIDATE_HOME]", "CANDIDATE_HOME"),
     ]
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key:
