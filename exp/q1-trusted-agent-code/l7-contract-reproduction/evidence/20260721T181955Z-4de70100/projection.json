@@ -1,0 +1,20 @@
+{
+  "kind": "public-safe-redacted-projection",
+  "projection": {
+    "changed_files": [
+      {
+        "occurrences": 12,
+        "path": "agent/attempt-1/events.jsonl"
+      }
+    ],
+    "redactions": 12,
+    "replacement": "[REDACTED:OPENAI_KEY_FINGERPRINT]"
+  },
+  "source": {
+    "contract_commit": "3ca254222aac83c7054ba38b29bba7348f2ec536",
+    "raw_retention": "private local storage outside the repository",
+    "run_id": "20260721T181955Z-4de70100",
+    "verification_boundary": "exact transform requires retained private evidence"
+  },
+  "version": 2
+}

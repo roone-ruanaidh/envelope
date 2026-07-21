@@ -1,0 +1,23 @@
+{
+  "loop": {
+    "id": "Q1/L7",
+    "intervention": "live_candidate_lima_shape"
+  },
+  "prior_loop": {
+    "loop_id": "Q1/L6",
+    "result_commit": "f00af3cab9c952bb42b8490973c4de697c0ccb4c",
+    "run_id": "20260721T175525Z-f7c72be4"
+  },
+  "schema_version": 1,
+  "setup": {
+    "candidate_boundary_qualification": {
+      "included_in_evidence": true,
+      "measured_as_task_cost": false
+    }
+  },
+  "workload": {
+    "id": "q1-lease-service-v1",
+    "resource_namespace": "q1-l1",
+    "source_loop": "Q1/L1"
+  }
+}

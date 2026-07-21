@@ -1,0 +1,26 @@
+[
+  {
+    "count": 19,
+    "item": "HOST_HOME",
+    "sequence": 1,
+    "stream": "stdout"
+  },
+  {
+    "count": 5,
+    "item": "HOST_HOME",
+    "sequence": 1,
+    "stream": "stderr"
+  },
+  {
+    "count": 1,
+    "item": "HOST_REPOSITORY",
+    "sequence": 1,
+    "stream": "record"
+  },
+  {
+    "count": 8,
+    "item": "HOST_HOME",
+    "sequence": 3,
+    "stream": "stderr"
+  }
+]
