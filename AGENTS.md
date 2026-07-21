@@ -57,7 +57,30 @@ Agents may recommend the next loop or promotion but may NOT authorize either.
 A loop is agent-executable ONLY when the agent can execute it and assign its disposition without inventing a rule, changing the question, broadening authority, or making an unscored judgment.
 Predeclared branches are allowed. Otherwise stop and return the evidence and unresolved decision for human review.
 
+Failure is how the methodology proves itself.
+**A loop that falsifies its question is a valued result.** It helps scope the next question, branch the science, and compounds momentum.
+Dead ends are documented at the same standard as successes — the pivot record is evidence that course correction is method here, not accident.
+
 Promotion is separate from loop success. The experiment remains in `exp/`; only the explicitly reviewed result enters `src/`.
+Every terminal loop must derive a human-reviewable consequence: a promotion candidate, methodology change, next question, or explicit decision to stop. Derivation is required; promotion remains human-gated.
+
+# Erasure Principles
+
+- Prefer removing code over adding it. A fix that deletes lines beats one that adds them, if behavior is preserved.
+- After completing a task, look for what can now be deleted: dead code, stale files, obsolete comments, redundant docs, unused deps.
+- Measure complexity by branch count (if/match/case), not line count. Reduce branches by building better abstractions, never by minifying.
+- Never code-golf: shortening names or stripping comments is fake compression. Real compression preserves behavior and readability while removing structural redundancy.
+- When writing docs or summaries, compress: state only what can't be reconstructed from what's already there. Delete anything the reader could infer.
+- Before adding a new file, abstraction, or config, check whether an existing one can absorb it.
+- Periodically consolidate: if two things express the same idea, merge them and delete one.
+
+# Documentation
+Write documentation and user-facing responses for an intelligent cold reader.
+Lead with what something is, what it does, and why it matters.
+Use the shortest form that preserves the full idea, essential context, technical precision, evidence, constraints, tradeoffs, caveats, and uncertainty.
+Prefer plain words, concrete verbs, short paragraphs, and formatting that makes the argument easy to scan.
+Use established domain terminology when it is most precise, defining it briefly when needed.
+Avoid filler, hype, repetition, and unnecessary structure.
 
 # Git
 Work sequentially on `main`. Do not create branches, worktrees, pull requests, or tags unless explicitly requested.
@@ -75,16 +98,6 @@ Commit only reproducible, public-safe evidence.
 NEVER commit credentials, secrets, private material, or uncontrolled generated artifacts.
 
 Record redactions and unavailable evidence explicitly.
-
-## Erasure Principles
-
-- Prefer removing code over adding it. A fix that deletes lines beats one that adds them, if behavior is preserved.
-- After completing a task, look for what can now be deleted: dead code, stale files, obsolete comments, redundant docs, unused deps.
-- Measure complexity by branch count (if/match/case), not line count. Reduce branches by building better abstractions, never by minifying.
-- Never code-golf: shortening names or stripping comments is fake compression. Real compression preserves behavior and readability while removing structural redundancy.
-- When writing docs or summaries, compress: state only what can't be reconstructed from what's already there. Delete anything the reader could infer.
-- Before adding a new file, abstraction, or config, check whether an existing one can absorb it.
-- Periodically consolidate: if two things express the same idea, merge them and delete one.
 
 # Code review (default on "let's review" or at any milestone)
 Walk me through, briefly and in order:
@@ -114,11 +127,3 @@ Produce from this session's work:
 4. **Flags** — identify claims I likely cannot defend past one follow-up, based on what I engaged with versus delegated this session. This is my study list; do not flatter me.
 
 Draw on the latest review's trust surface and low-confidence list. The answer is rehearsable; the flags keep it honest.
-
-# Documentation
-Write documentation and user-facing responses for an intelligent cold reader.
-Lead with what something is, what it does, and why it matters.
-Use the shortest form that preserves the full idea, essential context, technical precision, evidence, constraints, tradeoffs, caveats, and uncertainty.
-Prefer plain words, concrete verbs, short paragraphs, and formatting that makes the argument easy to scan.
-Use established domain terminology when it is most precise, defining it briefly when needed.
-Avoid filler, hype, repetition, and unnecessary structure.
