@@ -36,6 +36,8 @@ L7_ROOT = ROOT.parent / "l7-contract-reproduction"
 L7_RUNNER = L7_ROOT / "reproduction" / "run_l7.py"
 L8_ROOT = ROOT.parent / "l8-contract-reproduction"
 L8_RUNNER = L8_ROOT / "reproduction" / "run_l8.py"
+L9_ROOT = ROOT.parent / "l9-contract-reproduction"
+L9_RUNNER = L9_ROOT / "reproduction" / "run_l9.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -107,6 +109,18 @@ DERIVED_LOOPS = (
         },
         "root": L8_ROOT,
         "runner": L8_RUNNER,
+        "qualification": None,
+    },
+    {
+        "id": "Q1/L9",
+        "intervention": "structured_output_root_object",
+        "prior": {
+            "loop_id": "Q1/L8",
+            "result_commit": "744a13986555adcd93adf0f59102ffada9f871e5",
+            "run_id": "20260721T204010Z-87c2d9c9",
+        },
+        "root": L9_ROOT,
+        "runner": L9_RUNNER,
         "qualification": None,
     },
 )
@@ -975,7 +989,14 @@ class ContractMechanicsTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        statuses = {branch["properties"]["status"]["const"] for branch in schema["oneOf"]}
+        self.assertEqual(schema["type"], "object")
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["required"], ["completion"])
+        completion = schema["properties"]["completion"]
+        statuses = {
+            branch["properties"]["status"]["const"]
+            for branch in completion["anyOf"]
+        }
         self.assertEqual(statuses, {"blocked", "declared_complete"})
         remediation = (
             ROOT / "reproduction" / "agent-remediation-prompt.md"
@@ -985,8 +1006,15 @@ class ContractMechanicsTests(unittest.TestCase):
     def test_completion_predicate_and_attestation(self) -> None:
         complete = {"status": "declared_complete", "service_command": ["python3", "service.py"]}
         self.assertEqual(run_l1._validate_completion(complete), complete)
+        self.assertEqual(run_l1._unwrap_completion({"completion": complete}), complete)
         with self.assertRaises(run_l1.Inconclusive):
-            run_l1._validate_completion({"status": "blocked", "reason": "undefined boundary"})
+            run_l1._unwrap_completion(complete)
+        with self.assertRaises(run_l1.Inconclusive):
+            run_l1._unwrap_completion({"completion": complete, "extra": None})
+        with self.assertRaises(run_l1.Inconclusive):
+            run_l1._unwrap_completion(
+                {"completion": {"status": "blocked", "reason": "undefined boundary"}}
+            )
         attestation = {
             "active_minutes": "unknown",
             "approved_boundary_exceptions": [],

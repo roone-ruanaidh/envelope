@@ -3289,6 +3289,12 @@ def _validate_completion(value: Any) -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
+def _unwrap_completion(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != {"completion"}:
+        raise Inconclusive("agent_invocation", "agent completion envelope is invalid")
+    return _validate_completion(value["completion"])
+
+
 def _agent_shell_command(remote_completion: str, resume_thread_id: str | None) -> str:
     common = (
         f"--strict-config --ignore-user-config --ignore-rules --json "
@@ -3417,7 +3423,7 @@ def _invoke_agent(
             completion_path,
         )
     try:
-        completion = _validate_completion(
+        completion = _unwrap_completion(
             _read_bounded_json(
                 completion_path,
                 maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,

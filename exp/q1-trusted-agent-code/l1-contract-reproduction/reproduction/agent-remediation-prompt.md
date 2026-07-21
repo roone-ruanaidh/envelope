@@ -6,4 +6,4 @@ The evidence contains only admissible public-contract findings; evaluator source
 {{FEEDBACK_JSON}}
 ```
 
-Rerun your local checks and remove generated caches, databases, logs, and other test output. Your final response must match the supplied JSON schema. Return `declared_complete` only when the workspace contains the remediated candidate you intend to evaluate, with its exact foreground argv. Return `blocked` when correction requires an undefined decision or unavailable authority. Do not ask a question.
+Rerun your local checks and remove generated caches, databases, logs, and other test output. Your final response must match the supplied JSON schema and put the declaration under `completion`. Return `declared_complete` only when the workspace contains the remediated candidate you intend to evaluate, with its exact foreground argv. Return `blocked` when correction requires an undefined decision or unavailable authority. Do not ask a question.
