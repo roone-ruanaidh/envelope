@@ -286,6 +286,7 @@ LIMA_CONFIG_FIELDS = frozenset(
         "vmType",
     }
 )
+CANDIDATE_LIMA_CONFIG_FIELDS = LIMA_CONFIG_FIELDS - {"mounts", "param"}
 LIMA_INSTANCE_FIELDS = frozenset(
     {
         "HostArch",
@@ -1881,12 +1882,22 @@ def _expected_lima_user() -> dict[str, Any]:
     }
 
 
-def _validate_lima_instance_record(value: dict[str, Any], instance: str) -> None:
+def _validate_lima_instance_record(
+    value: dict[str, Any],
+    instance: str,
+    *,
+    expected_parameters: dict[str, str] | None,
+) -> None:
     instance_root = HOST_HOME / ".lima" / instance
     positive_int_fields = ("driverPID", "hostAgentPID", "sshLocalPort")
+    expected_fields = (
+        LIMA_INSTANCE_FIELDS
+        if expected_parameters is not None
+        else LIMA_INSTANCE_FIELDS - {"param"}
+    )
     if set(value) not in {
-        LIMA_INSTANCE_FIELDS,
-        LIMA_INSTANCE_FIELDS - {"errors"},
+        expected_fields,
+        expected_fields - {"errors"},
     }:
         raise ValueError("Lima inspection has an unmapped instance field")
     if any(
@@ -1905,7 +1916,11 @@ def _validate_lima_instance_record(value: dict[str, Any], instance: str) -> None
         or not isinstance(value.get("protected"), bool)
         or not isinstance(value.get("limaVersion"), str)
         or not value["limaVersion"]
-        or value.get("param") != {"internal_netplanOptional": "true"}
+        or (
+            value.get("param") != expected_parameters
+            if expected_parameters is not None
+            else "param" in value
+        )
         or value.get("HostOS") != "darwin"
         or value.get("HostArch") != "aarch64"
         or value.get("LimaHome") != str(HOST_HOME / ".lima")
@@ -1923,7 +1938,11 @@ def _normalized_evaluator_lima(raw: str) -> str:
         raise ValueError("q1-l1-evaluator Lima inspection returned the wrong instance")
     if value.get("status") != "Running":
         raise ValueError("q1-l1-evaluator is not already running")
-    _validate_lima_instance_record(value, EVALUATOR_INSTANCE)
+    _validate_lima_instance_record(
+        value,
+        EVALUATOR_INSTANCE,
+        expected_parameters={"internal_netplanOptional": "true"},
+    )
     config = value.get("config")
     if not isinstance(config, dict) or set(config) != LIMA_CONFIG_FIELDS:
         raise ValueError("q1-l1-evaluator has an unmapped Lima config field")
@@ -2140,11 +2159,11 @@ def _normalized_candidate_lima(
         raise ValueError("candidate Lima inspection returned the wrong instance")
     if value.get("status") != "Running":
         raise ValueError("candidate Lima instance is not running")
-    _validate_lima_instance_record(value, instance)
+    _validate_lima_instance_record(value, instance, expected_parameters=None)
     config = value.get("config")
     if not isinstance(config, dict) or frozenset(config) not in {
-        LIMA_CONFIG_FIELDS,
-        LIMA_CONFIG_FIELDS | {"portForwards"},
+        CANDIDATE_LIMA_CONFIG_FIELDS,
+        CANDIDATE_LIMA_CONFIG_FIELDS | {"portForwards"},
     }:
         raise ValueError("candidate Lima instance has an unmapped config field")
     if "dns" in config or config.get("portForwards", []) != []:
@@ -2161,7 +2180,6 @@ def _normalized_candidate_lima(
         or config.get("disk") != "40GiB"
         or value.get("disk") != 40 * 1024**3
         or config.get("minimumLimaVersion") != "2.1.4"
-        or config.get("mounts") != []
         or config.get("mountInotify") is not False
         or config.get("propagateProxyEnv") is not False
         or config.get("timezone") != "America/Denver"
@@ -2190,12 +2208,10 @@ def _normalized_candidate_lima(
         "mountType": "virtiofs",
         "nestedVirtualization": False,
         "os": "Linux",
-        "param": {"internal_netplanOptional": "true"},
         "plain": False,
         "upgradePackages": False,
         "video": {"display": "none"},
         "vmOpts": {
-            "qemu": {"cpuType": None, "minimumVersion": None},
             "vz": {
                 "diskImageFormat": "raw",
                 "rosetta": {"binfmt": False, "enabled": False},
@@ -2250,7 +2266,7 @@ def _normalized_candidate_lima(
         "mounts": [],
         "nested_virtualization": config["nestedVirtualization"],
         "os": config["os"],
-        "parameters": {"internal_netplan_optional": config["param"]["internal_netplanOptional"]},
+        "parameters": {},
         "plain": config["plain"],
         "port_forwards": [],
         "propagate_proxy_env": config["propagateProxyEnv"],
@@ -2267,10 +2283,6 @@ def _normalized_candidate_lima(
         "video": {"display": config["video"]["display"]},
         "vm_type": config["vmType"],
         "vm_options": {
-            "qemu": {
-                "cpu_type": config["vmOpts"]["qemu"]["cpuType"],
-                "minimum_version": config["vmOpts"]["qemu"]["minimumVersion"],
-            },
             "vz": {
                 "disk_image_format": config["vmOpts"]["vz"]["diskImageFormat"],
                 "rosetta": {

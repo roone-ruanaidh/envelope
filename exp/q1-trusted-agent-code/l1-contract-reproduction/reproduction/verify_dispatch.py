@@ -32,6 +32,8 @@ L5_ROOT = ROOT.parent / "l5-contract-reproduction"
 L5_RUNNER = L5_ROOT / "reproduction" / "run_l5.py"
 L6_ROOT = ROOT.parent / "l6-contract-reproduction"
 L6_RUNNER = L6_ROOT / "reproduction" / "run_l6.py"
+L7_ROOT = ROOT.parent / "l7-contract-reproduction"
+L7_RUNNER = L7_ROOT / "reproduction" / "run_l7.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -80,6 +82,18 @@ DERIVED_LOOPS = (
         "root": L6_ROOT,
         "runner": L6_RUNNER,
         "qualification": L6_ROOT / "build" / "candidate-boundary-qualification",
+    },
+    {
+        "id": "Q1/L7",
+        "intervention": "live_candidate_lima_shape",
+        "prior": {
+            "loop_id": "Q1/L6",
+            "result_commit": "f00af3cab9c952bb42b8490973c4de697c0ccb4c",
+            "run_id": "20260721T175525Z-f7c72be4",
+        },
+        "root": L7_ROOT,
+        "runner": L7_RUNNER,
+        "qualification": L7_ROOT / "build" / "candidate-boundary-qualification",
     },
 )
 sys.path.insert(0, str(ROOT / "reproduction"))
@@ -3600,10 +3614,8 @@ class ContractMechanicsTests(unittest.TestCase):
             "minimumLimaVersion": "2.1.4",
             "mountInotify": False,
             "mountType": "virtiofs",
-            "mounts": [],
             "nestedVirtualization": False,
             "os": "Linux",
-            "param": {"internal_netplanOptional": "true"},
             "plain": False,
             "propagateProxyEnv": False,
             "ssh": {
@@ -3619,7 +3631,6 @@ class ContractMechanicsTests(unittest.TestCase):
             "user": run_l1._expected_lima_user(),
             "video": {"display": "none"},
             "vmOpts": {
-                "qemu": {"cpuType": None, "minimumVersion": None},
                 "vz": {
                     "diskImageFormat": "raw",
                     "rosetta": {"binfmt": False, "enabled": False},
@@ -3627,7 +3638,7 @@ class ContractMechanicsTests(unittest.TestCase):
             },
             "vmType": "vz",
         }
-        self.assertEqual(set(config), run_l1.LIMA_CONFIG_FIELDS)
+        self.assertEqual(set(config), run_l1.CANDIDATE_LIMA_CONFIG_FIELDS)
         instance_root = run_l1.HOST_HOME / ".lima" / instance
         record = {
             "HostArch": "aarch64",
@@ -3646,7 +3657,6 @@ class ContractMechanicsTests(unittest.TestCase):
             "limaVersion": "2.1.4",
             "memory": 8 * 1024**3,
             "name": instance,
-            "param": {"internal_netplanOptional": "true"},
             "protected": False,
             "sshAddress": "127.0.0.1",
             "sshConfigFile": str(instance_root / "ssh.config"),
@@ -3664,7 +3674,9 @@ class ContractMechanicsTests(unittest.TestCase):
         )
         self.assertEqual(observed["base_image"]["digest"], image["digest"])
         self.assertEqual(observed["config"]["mounts"], [])
+        self.assertEqual(observed["config"]["parameters"], {})
         self.assertEqual(observed["config"]["port_forwards"], [])
+        self.assertEqual(set(observed["config"]["vm_options"]), {"vz"})
         without_errors = json.loads(json.dumps(record))
         del without_errors["errors"]
         run_l1._normalized_candidate_lima(
@@ -3680,7 +3692,7 @@ class ContractMechanicsTests(unittest.TestCase):
                 instance,
                 authority,
             )
-        for field in sorted(run_l1.LIMA_CONFIG_FIELDS):
+        for field in sorted(run_l1.CANDIDATE_LIMA_CONFIG_FIELDS):
             with self.subTest(field=field):
                 drifted = json.loads(json.dumps(record))
                 drifted["config"][field] = {"unexpected": True}
@@ -3694,6 +3706,35 @@ class ContractMechanicsTests(unittest.TestCase):
         extra["config"]["futureBoundary"] = True
         with self.assertRaises(ValueError):
             run_l1._normalized_candidate_lima(json.dumps(extra), instance, authority)
+        for omitted_field in ("mounts", "param"):
+            with self.subTest(omitted_field=omitted_field):
+                invented = json.loads(json.dumps(record))
+                invented["config"][omitted_field] = [] if omitted_field == "mounts" else {}
+                with self.assertRaises(ValueError):
+                    run_l1._normalized_candidate_lima(
+                        json.dumps(invented),
+                        instance,
+                        authority,
+                    )
+        invented_instance_parameter = json.loads(json.dumps(record))
+        invented_instance_parameter["param"] = {"internal_netplanOptional": "true"}
+        with self.assertRaises(ValueError):
+            run_l1._normalized_candidate_lima(
+                json.dumps(invented_instance_parameter),
+                instance,
+                authority,
+            )
+        invented_inactive_backend = json.loads(json.dumps(record))
+        invented_inactive_backend["config"]["vmOpts"]["qemu"] = {
+            "cpuType": None,
+            "minimumVersion": None,
+        }
+        with self.assertRaises(ValueError):
+            run_l1._normalized_candidate_lima(
+                json.dumps(invented_inactive_backend),
+                instance,
+                authority,
+            )
         stopped = json.loads(json.dumps(record))
         stopped["status"] = "Stopped"
         with self.assertRaises(ValueError):
