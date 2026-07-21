@@ -1,0 +1,4 @@
+time="2026-07-21T01:18:54-06:00" level=info msg="The vz driver process seems already stopped"
+time="2026-07-21T01:18:54-06:00" level=info msg="The host agent process seems already stopped"
+time="2026-07-21T01:18:54-06:00" level=info msg="Removing *.pid *.sock *.tmp under \"[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b\""
+time="2026-07-21T01:18:54-06:00" level=info msg="Deleted `q1-l1-candidate-20260721t071826z-10ec801b` (`[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b`)"

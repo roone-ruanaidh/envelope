@@ -1,0 +1,11 @@
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+
+[shell_environment_policy]
+include_only = ["HOME", "LANG", "LC_ALL", "PATH", "TERM"]
+
+[shell_environment_policy.set]
+MYPY_CACHE_DIR = "/tmp/q1-l1-mypy-cache"
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONNOUSERSITE = "1"
+XDG_CACHE_HOME = "/tmp/q1-l1-cache"

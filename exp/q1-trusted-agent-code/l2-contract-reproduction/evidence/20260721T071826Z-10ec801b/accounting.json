@@ -1,0 +1,48 @@
+{
+  "agent": {
+    "invocations": [],
+    "monetary_cost": "unknown",
+    "total_elapsed_seconds": 0
+  },
+  "candidate_vm": {
+    "lifetime_seconds": "unknown",
+    "monetary_cost": "unknown",
+    "observed_existing_at": null,
+    "observed_interval_lower_bound_seconds": "unknown",
+    "provisioning_started_at": "2026-07-21T07:18:54.190740+00:00",
+    "right_censored": "unknown",
+    "teardown_finished_at": "2026-07-21T07:18:55.069038+00:00",
+    "teardown_verified": true
+  },
+  "evaluator": {
+    "monetary_cost": "unknown",
+    "standing_provisioning_and_idle": "excluded",
+    "workload_seconds": 27.89914795802906
+  },
+  "human": {
+    "active_minutes": "unknown",
+    "monetary_cost": "unknown",
+    "review_wait_upper_bound_seconds": "unknown"
+  },
+  "overlap": {
+    "nonexclusive": true,
+    "rule": "Agent, candidate-VM, and evaluator intervals overlap trusted-machine and wall intervals; no category total may be summed into cost or latency."
+  },
+  "trusted_machine": {
+    "artifact_self_recording_tail_seconds": "unknown",
+    "coverage": "Execute and finalization elapsed values are monotonic lower bounds ending before their containing artifacts are written. Command records are completed scoped intervals. Pending and terminal index scan-and-hash durations are in their indexes; serialization, durable write, projection, and final verification tails are unknown.",
+    "execute_elapsed_lower_bound_seconds": 29.026029750006273,
+    "execute_recorded_active_seconds": 28.9624523333041,
+    "finalization_elapsed_lower_bound_seconds": 0.0,
+    "monetary_cost": "unknown",
+    "pending_index_scan_hash_elapsed_seconds": "evidence-index.json:inventory_scan_hash_elapsed_seconds"
+  },
+  "wall": {
+    "elapsed_lower_bound_seconds": 29.026063,
+    "post_cutoff_tail_seconds": "unknown",
+    "recorded_cutoff_at": "2026-07-21T07:18:55.360442+00:00",
+    "review_received_at": null,
+    "review_requested_at": null,
+    "run_started_at": "2026-07-21T07:18:26.334379+00:00"
+  }
+}
