@@ -44,7 +44,7 @@ def _expected() -> dict[str, object]:
 
 class EvaluatorGuestCollectorTests(unittest.TestCase):
     def test_tmpdir_must_be_a_real_run_envelope_directory(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="q1-l1-run-", dir="/tmp") as temporary:
+        with tempfile.TemporaryDirectory(prefix="q1-l1-run-test-", dir="/tmp") as temporary:
             tmpdir = Path(temporary) / "tmp"
             tmpdir.mkdir()
             with mock.patch.dict(os.environ, {"TMPDIR": str(tmpdir)}):

@@ -34,6 +34,8 @@ L6_ROOT = ROOT.parent / "l6-contract-reproduction"
 L6_RUNNER = L6_ROOT / "reproduction" / "run_l6.py"
 L7_ROOT = ROOT.parent / "l7-contract-reproduction"
 L7_RUNNER = L7_ROOT / "reproduction" / "run_l7.py"
+L8_ROOT = ROOT.parent / "l8-contract-reproduction"
+L8_RUNNER = L8_ROOT / "reproduction" / "run_l8.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -95,10 +97,23 @@ DERIVED_LOOPS = (
         "runner": L7_RUNNER,
         "qualification": L7_ROOT / "build" / "candidate-boundary-qualification",
     },
+    {
+        "id": "Q1/L8",
+        "intervention": "api_authentication_public_safety",
+        "prior": {
+            "loop_id": "Q1/L7",
+            "result_commit": "9de1e949d7cdb4b00ca5c2451bb313af4b4b9ad5",
+            "run_id": "20260721T181955Z-4de70100",
+        },
+        "root": L8_ROOT,
+        "runner": L8_RUNNER,
+        "qualification": None,
+    },
 )
 sys.path.insert(0, str(ROOT / "reproduction"))
 sys.path.insert(0, str(ROOT))
 
+import api_authentication_preflight
 import run_l1
 RUN_L1_IMPORTED_CANDIDATE_TRANSFER = "candidate_transfer" in sys.modules
 import candidate_transfer
@@ -806,6 +821,14 @@ class ContractMechanicsTests(unittest.TestCase):
     def _pending_generation(self, root: Path) -> tuple[Path, Path, dict[str, object]]:
         evidence = root / "evidence"
         evidence.mkdir()
+        run_l1._write_json(
+            evidence / "setup" / run_l1.API_AUTHENTICATION_REPORT,
+            {
+                "category": "api_authentication",
+                "duration_seconds": 0.25,
+                "status": 200,
+            },
+        )
         run_id = "20260101T000000Z-deadbeef"
         candidate = evidence / "candidate" / "attempt-1"
         source = candidate / "source"
@@ -1215,14 +1238,24 @@ class ContractMechanicsTests(unittest.TestCase):
         )
         self.assertEqual(plan["timeouts_seconds"]["agent_guest"], 1800)
         self.assertEqual(plan["timeouts_seconds"]["agent_outer"], 1860)
+        self.assertEqual(plan["timeouts_seconds"]["api_authentication_total"], 30)
         self.assertEqual(plan["timeouts_seconds"]["automated_execute"], 10800)
         self.assertEqual(
             plan["timeouts_seconds"]["automated_work_before_cleanup_reserve"],
             10500,
         )
         self.assertTrue(plan["evaluator"]["preexisting_only"])
-        self.assertIn("before run clocks or evidence", plan["sequence"][1])
-        self.assertIn("recheck zero scoped residue", plan["sequence"][2])
+        self.assertEqual(
+            plan["sequence"][:5],
+            [
+                "clean reviewed contract commit",
+                "no prior result, key present, and zero scoped residue",
+                "one read-only API authentication preflight before run state; "
+                "a failure is a prerequisite refusal",
+                "load the fixed candidate-transfer boundary",
+                "start Q1/L1 run clocks and evidence, then recheck zero scoped residue",
+            ],
+        )
         self.assertTrue(
             any("human attestation" in step for step in plan["sequence"])
         )
@@ -1736,6 +1769,175 @@ class ContractMechanicsTests(unittest.TestCase):
             run_l1._preflight("a" * 40)
         self.assertEqual(events, ["checkout", "qualification"])
 
+    def test_api_authentication_helper_is_one_bodyless_request(self) -> None:
+        secret = "sk-" + "proj-" + "secret-" + "control-" + "value"
+        for status in (200, 401, 429):
+            with self.subTest(status=status):
+                response = Mock(status=status)
+                connection = Mock()
+                connection.getresponse.return_value = response
+                with (
+                    patch.object(
+                        api_authentication_preflight.http.client,
+                        "HTTPSConnection",
+                        return_value=connection,
+                    ) as constructor,
+                ):
+                    observed = api_authentication_preflight.probe(secret)
+                self.assertEqual(observed, status)
+                constructor.assert_called_once_with(
+                    api_authentication_preflight.HOST,
+                    timeout=api_authentication_preflight.SOCKET_TIMEOUT_SECONDS,
+                )
+                connection.request.assert_called_once_with(
+                    "GET",
+                    api_authentication_preflight.PATH,
+                    headers={"Authorization": f"Bearer {secret}"},
+                )
+                connection.getresponse.assert_called_once_with()
+                response.read.assert_not_called()
+                response.peek.assert_not_called()
+                response.getheaders.assert_not_called()
+                response.close.assert_called_once_with()
+                connection.close.assert_called_once_with()
+
+    def test_api_authentication_preflight_is_hard_bounded_and_secret_stdin_only(
+        self,
+    ) -> None:
+        secret = "sk-" + "proj-" + "secret-" + "control-" + "value"
+        captured = run_l1.CapturedProcess(
+            return_code=0,
+            stdout=b'{"status": 200}',
+            stderr=b"",
+            timed_out=False,
+            breaches=(),
+        )
+        with (
+            patch.object(run_l1, "_run_bounded_process", return_value=captured) as run,
+            patch.object(
+                run_l1.time,
+                "monotonic",
+                side_effect=[10.0, 10.25],
+            ),
+        ):
+            report = run_l1._api_authentication_preflight(secret)
+        self.assertEqual(
+            report,
+            {
+                "category": "api_authentication",
+                "duration_seconds": 0.25,
+                "status": 200,
+            },
+        )
+        run.assert_called_once()
+        command = run.call_args.args[0]
+        options = run.call_args.kwargs
+        self.assertEqual(
+            command,
+            [
+                sys.executable,
+                "-B",
+                "-I",
+                str(run_l1.API_AUTHENTICATION_HELPER),
+            ],
+        )
+        self.assertEqual(options["input_bytes"], secret.encode("utf-8"))
+        self.assertEqual(
+            options["timeout_seconds"],
+            run_l1.API_AUTHENTICATION_TIMEOUT_SECONDS,
+        )
+        self.assertNotIn(secret, json.dumps(command))
+        self.assertNotIn(secret, json.dumps(options["environment"], sort_keys=True))
+        self.assertNotIn("OPENAI_API_KEY", options["environment"])
+
+    def test_api_authentication_preflight_fails_safely_without_retry(self) -> None:
+        secret = "sk-" + "proj-" + "secret-" + "control-" + "value"
+        failures = (
+            OSError(secret),
+            run_l1.CapturedProcess(1, b"", secret.encode(), False, ()),
+            run_l1.CapturedProcess(0, b'{"status":null}', b"", False, ()),
+            run_l1.CapturedProcess(0, b'{"status":200.0}', b"", False, ()),
+            run_l1.CapturedProcess(0, b'{"status":200}', b"", True, ()),
+        )
+        for failure in failures:
+            with self.subTest(failure=repr(failure)):
+                outcome = (
+                    {"side_effect": failure}
+                    if isinstance(failure, Exception)
+                    else {"return_value": failure}
+                )
+                with (
+                    patch.object(
+                        run_l1,
+                        "_run_bounded_process",
+                        **outcome,
+                    ),
+                    patch.object(
+                        run_l1.time,
+                        "monotonic",
+                        side_effect=[10.0, 10.25],
+                    ),
+                ):
+                    report = run_l1._api_authentication_preflight(secret)
+                self.assertEqual(
+                    report,
+                    {
+                        "category": "api_authentication",
+                        "duration_seconds": 0.25,
+                        "status": None,
+                    },
+                )
+                with (
+                    patch.object(
+                        run_l1,
+                        "_api_authentication_preflight",
+                        return_value=report,
+                    ),
+                    self.assertRaisesRegex(RuntimeError, "authentication preflight failed")
+                    as raised,
+                ):
+                    run_l1._require_api_authentication(secret)
+                rendered = str(raised.exception)
+                self.assertNotIn(secret, rendered)
+
+    def test_api_authentication_report_schema_is_exact(self) -> None:
+        valid = {
+            "category": "api_authentication",
+            "duration_seconds": 0.25,
+            "status": 200,
+        }
+        self.assertEqual(run_l1._validated_api_authentication_report(valid), valid)
+        for invalid in (
+            {**valid, "extra": True},
+            {**valid, "status": 401},
+            {**valid, "status": 200.0},
+            {**valid, "status": True},
+            {**valid, "duration_seconds": float("nan")},
+            {**valid, "duration_seconds": -1},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                run_l1._validated_api_authentication_report(invalid)
+
+    def test_api_authentication_refusal_precedes_all_run_state(self) -> None:
+        load = Mock()
+        run_id = Mock()
+        deadline = Mock()
+        with (
+            patch.object(run_l1, "_preflight", return_value="secret"),
+            patch.object(
+                run_l1,
+                "_require_api_authentication",
+                side_effect=RuntimeError("safe refusal"),
+            ),
+            patch.object(run_l1, "_load_candidate_transfer", load),
+            patch.object(run_l1, "_run_id", run_id),
+            self.assertRaisesRegex(RuntimeError, "safe refusal"),
+        ):
+            run_l1._execute_locked("a" * 40, deadline)
+        load.assert_not_called()
+        run_id.assert_not_called()
+        self.assertFalse(run_l1.EVIDENCE_ROOT.exists())
+
     def test_missing_candidate_boundary_qualification_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             loop_root = Path(temporary) / "l4-contract-reproduction"
@@ -2113,6 +2315,15 @@ class ContractMechanicsTests(unittest.TestCase):
                 patch.object(run_l1, "EVIDENCE_ROOT", root / "evidence"),
                 patch.object(run_l1, "RESULT_PATH", root / "RESULT.md"),
                 patch.object(run_l1, "_preflight", return_value="secret"),
+                patch.object(
+                    run_l1,
+                    "_require_api_authentication",
+                    return_value={
+                        "category": "api_authentication",
+                        "duration_seconds": 0.25,
+                        "status": 200,
+                    },
+                ),
                 patch.object(run_l1, "_load_candidate_transfer"),
                 patch.object(
                     run_l1,
@@ -2208,6 +2419,15 @@ class ContractMechanicsTests(unittest.TestCase):
                 patch.object(run_l1, "EVIDENCE_ROOT", root / "evidence"),
                 patch.object(run_l1, "RESULT_PATH", root / "RESULT.md"),
                 patch.object(run_l1, "_preflight", return_value="secret"),
+                patch.object(
+                    run_l1,
+                    "_require_api_authentication",
+                    return_value={
+                        "category": "api_authentication",
+                        "duration_seconds": 0.25,
+                        "status": 200,
+                    },
+                ),
                 patch.object(run_l1, "_load_candidate_transfer"),
                 patch.object(
                     run_l1,
@@ -2763,6 +2983,14 @@ class ContractMechanicsTests(unittest.TestCase):
             root = Path(temporary)
             evidence = root / "evidence"
             evidence.mkdir()
+            run_l1._write_json(
+                evidence / "setup" / run_l1.API_AUTHENTICATION_REPORT,
+                {
+                    "category": "api_authentication",
+                    "duration_seconds": 0.25,
+                    "status": 200,
+                },
+            )
             (evidence / "record.json").write_text("{}\n", encoding="utf-8")
             result = root / "RESULT.md"
             result.write_text("# result\n", encoding="utf-8")
@@ -2786,6 +3014,14 @@ class ContractMechanicsTests(unittest.TestCase):
             root = Path(temporary)
             evidence = root / "evidence"
             evidence.mkdir()
+            run_l1._write_json(
+                evidence / "setup" / run_l1.API_AUTHENTICATION_REPORT,
+                {
+                    "category": "api_authentication",
+                    "duration_seconds": 0.25,
+                    "status": 200,
+                },
+            )
             nested = evidence / "candidate" / "evidence-index.json"
             nested.parent.mkdir()
             nested.write_text("nested\n", encoding="utf-8")
@@ -3362,6 +3598,100 @@ class ContractMechanicsTests(unittest.TestCase):
             self.assertNotIn(str(ROOT), source.read_text(encoding="utf-8"))
             self.assertIn("[HOST_REPOSITORY]", source.read_text(encoding="utf-8"))
             run_l1._assert_public_safe_terminal(evidence, result)
+
+    def test_masked_openai_fingerprint_is_redacted_before_stream_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            recorder = run_l1.Recorder(evidence)
+            fingerprint = "sk-proj-" + ("*" * 116) + "Ab1-"
+
+            sanitized = recorder._sanitize(
+                f'{{"error":"{fingerprint}"}}\n',
+                sequence=1,
+                stream="stdout",
+            )
+
+            self.assertNotIn(fingerprint, sanitized)
+            self.assertIn("[REDACTED:OPENAI_KEY_FINGERPRINT]", sanitized)
+            self.assertEqual(
+                recorder.redactions,
+                [
+                    {
+                        "count": 1,
+                        "item": "OPENAI_KEY_FINGERPRINT",
+                        "sequence": 1,
+                        "stream": "stdout",
+                    }
+                ],
+            )
+
+    def test_terminal_masked_fingerprint_escape_fails_closed_before_indexing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence = root / "evidence"
+            events = evidence / "agent" / "attempt-1" / "events.jsonl"
+            events.parent.mkdir(parents=True)
+            fingerprint = b"sk-proj-" + (b"*" * 116) + b"Ab1_"
+            events.write_bytes(b'{"error":"' + fingerprint + b'"}\n')
+            result = root / "RESULT.md"
+            result.write_text("# result\n", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                run_l1._assert_public_safe_terminal(evidence, result)
+            records = run_l1._public_safety_redact(evidence, result, ())
+            self.assertEqual(
+                records,
+                [
+                    {
+                        "count": 1,
+                        "item": "OPENAI_KEY_FINGERPRINT",
+                        "path": "agent/attempt-1/events.jsonl",
+                        "reason": "credential-shaped bytes are not public-safe evidence",
+                    }
+                ],
+            )
+            sanitized = events.read_bytes()
+            self.assertNotIn(fingerprint, sanitized)
+            self.assertIn(b"[REDACTED:OPENAI_KEY_FINGERPRINT]", sanitized)
+            self.assertTrue(run_l1._redactions_require_inconclusive(records))
+            self.assertEqual(
+                run_l1._redaction_inconclusive_reason(records),
+                "public-safety redaction changed identity-bearing evidence",
+            )
+            run_l1._assert_public_safe_terminal(evidence, result)
+            index = run_l1._evidence_index(evidence)
+            record = next(
+                item
+                for item in index["files"]
+                if item["path"] == "agent/attempt-1/events.jsonl"
+            )
+            self.assertEqual(record["sha256"], run_l1._sha256(events))
+            self.assertEqual(record["size"], events.stat().st_size)
+
+    def test_masked_openai_fingerprint_pattern_is_narrow(self) -> None:
+        for suffix in (b"Ab1-", b"Ab1_", b"Ab12"):
+            with self.subTest(suffix=suffix):
+                valid = b"sk-svcacct-" + (b"*" * 20) + suffix
+                self.assertEqual(
+                    run_l1._public_safety_labels(valid, check_host_paths=False),
+                    {"OPENAI_KEY_FINGERPRINT"},
+                )
+        for value in (
+            b"sk-proj-" + (b"*" * 19) + b"Ab1_",
+            b"pk-proj-" + (b"*" * 20) + b"Ab1_",
+            b"sk-proj-" + (b"*" * 20) + b"Ab1",
+            b"xsk-proj-" + (b"*" * 20) + b"Ab12",
+            b"sk-proj-" + (b"*" * 20) + b"Ab12-",
+            b"sk-proj-" + (b"*" * 20) + b"Ab12_",
+            b"sk-proj-" + (b"*" * 20) + b"Ab1_x",
+            b"[REDACTED:OPENAI_KEY_FINGERPRINT]",
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    run_l1._public_safety_labels(value, check_host_paths=False),
+                    set(),
+                )
 
     def test_mode_zero_evidence_is_scanned_and_indexed_without_mode_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -3950,6 +4280,10 @@ class ContractMechanicsTests(unittest.TestCase):
             self.assertIn("boundary-validation.json", required)
             self.assertIn("candidate/attempt-1/transfer-status.json", required)
             self.assertIn("authorities/QUESTION.md", required)
+            self.assertIn(
+                f"setup/{run_l1.API_AUTHENTICATION_REPORT}",
+                required,
+            )
 
     def test_all_copied_run_authorities_are_public_safe(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

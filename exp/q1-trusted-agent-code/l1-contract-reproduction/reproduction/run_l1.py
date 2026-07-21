@@ -90,6 +90,9 @@ PROVISION_TIMEOUT_SECONDS = 30 * 60
 CLEANUP_TIMEOUT_SECONDS = 5 * 60
 FINALIZATION_TIMEOUT_SECONDS = 5 * 60
 FINALIZATION_ATTEMPT_NAME = "finalization-attempt.json"
+API_AUTHENTICATION_REPORT = "api-authentication-preflight.json"
+API_AUTHENTICATION_HELPER = REPRODUCTION / "api_authentication_preflight.py"
+API_AUTHENTICATION_TIMEOUT_SECONDS = 30
 QUALIFICATION_REPORT_NAME = "qualification.json"
 QUALIFICATION_INDEX_NAME = "qualification-evidence-index.json"
 QUALIFICATION_COMPLETION_NAME = "qualification-completion.json"
@@ -142,6 +145,17 @@ BEHAVIOR_TEST_LAYERS = (
 REDACTED_HOST_REPOSITORY = "[HOST_REPOSITORY]"
 REDACTED_HOST_HOME = "[HOST_HOME]"
 REDACTED_HOST_TEMP = "[HOST_TEMP]"
+OPENAI_KEY_FINGERPRINT_PATTERN = re.compile(
+    rb"(?<![A-Za-z0-9_-])sk-(?:proj-|svcacct-)?\*{20,}"
+    rb"[A-Za-z0-9_-]{4}(?![A-Za-z0-9_-])"
+)
+OPENAI_KEY_FINGERPRINT_TEXT_PATTERN = re.compile(
+    OPENAI_KEY_FINGERPRINT_PATTERN.pattern.decode("ascii")
+)
+OPENAI_KEY_PATTERN = re.compile(
+    rb"(?<![A-Za-z0-9_-])sk-(?:proj-|svcacct-)?"
+    rb"[A-Za-z0-9_-]{20,}(?![A-Za-z0-9_-])"
+)
 PUBLIC_SECRET_PATTERNS = (
     (
         "PRIVATE_KEY",
@@ -150,7 +164,11 @@ PUBLIC_SECRET_PATTERNS = (
             re.DOTALL,
         ),
     ),
-    ("OPENAI_KEY_PATTERN", re.compile(rb"\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b")),
+    (
+        "OPENAI_KEY_FINGERPRINT",
+        OPENAI_KEY_FINGERPRINT_PATTERN,
+    ),
+    ("OPENAI_KEY_PATTERN", OPENAI_KEY_PATTERN),
     (
         "BEARER_TOKEN",
         re.compile(rb"(?i:authorization\s*:\s*bearer\s+)[A-Za-z0-9._~+/=-]{12,}"),
@@ -1537,6 +1555,19 @@ class Recorder:
                         "stream": stream,
                     }
                 )
+        sanitized, occurrences = OPENAI_KEY_FINGERPRINT_TEXT_PATTERN.subn(
+            "[REDACTED:OPENAI_KEY_FINGERPRINT]",
+            sanitized,
+        )
+        if occurrences:
+            self.redactions.append(
+                {
+                    "count": occurrences,
+                    "item": "OPENAI_KEY_FINGERPRINT",
+                    "sequence": sequence,
+                    "stream": stream,
+                }
+            )
         for path, replacement in self._path_replacements:
             occurrences = sanitized.count(path)
             if occurrences:
@@ -2624,6 +2655,73 @@ def _preflight(expected_commit: str) -> str:
         raise RuntimeError("OPENAI_API_KEY must be supplied out of band before execution")
     _assert_no_orphaned_run()
     return api_key
+
+
+def _api_authentication_preflight(api_key: str) -> dict[str, Any]:
+    """Check bearer acceptance without retaining provider-controlled response data."""
+
+    started = time.monotonic()
+    status: int | None = None
+    try:
+        captured = _run_bounded_process(
+            [sys.executable, "-B", "-I", str(API_AUTHENTICATION_HELPER)],
+            environment=_safe_environment(),
+            input_bytes=api_key.encode("utf-8"),
+            timeout_seconds=API_AUTHENTICATION_TIMEOUT_SECONDS,
+        )
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
+        status = None
+    else:
+        if (
+            captured.return_code == 0
+            and not captured.timed_out
+            and not captured.breaches
+            and not captured.stderr
+            and len(captured.stdout) <= 64
+        ):
+            try:
+                observed = json.loads(captured.stdout.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                observed = None
+            if (
+                isinstance(observed, dict)
+                and set(observed) == {"status"}
+                and isinstance(observed.get("status"), int)
+                and not isinstance(observed.get("status"), bool)
+            ):
+                status = observed["status"]
+    return {
+        "category": "api_authentication",
+        "duration_seconds": max(0.0, time.monotonic() - started),
+        "status": status,
+    }
+
+
+def _validated_api_authentication_report(value: Any) -> dict[str, Any]:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"category", "duration_seconds", "status"}
+        or value.get("category") != "api_authentication"
+        or not isinstance(value.get("status"), int)
+        or isinstance(value.get("status"), bool)
+        or value.get("status") != 200
+        or not isinstance(value.get("duration_seconds"), (int, float))
+        or isinstance(value.get("duration_seconds"), bool)
+        or not math.isfinite(value["duration_seconds"])
+        or value["duration_seconds"] < 0
+    ):
+        raise ValueError("API authentication preflight report is invalid")
+    return cast(dict[str, Any], value)
+
+
+def _require_api_authentication(api_key: str) -> dict[str, Any]:
+    report = _api_authentication_preflight(api_key)
+    if report["status"] != 200:
+        raise RuntimeError(
+            "OpenAI API authentication preflight failed: "
+            + json.dumps(report, allow_nan=False, sort_keys=True)
+        )
+    return _validated_api_authentication_report(report)
 
 
 def _copy_run_authorities(evidence: Path) -> None:
@@ -4788,6 +4886,7 @@ def _required_evidence(evidence: Path, state: dict[str, Any]) -> list[Path]:
         evidence / "pending-RESULT.md",
         evidence / "redactions.json",
         evidence / "run.json",
+        evidence / "setup" / API_AUTHENTICATION_REPORT,
         evidence / "unavailable.json",
     ]
     authority_names = (
@@ -5387,6 +5486,7 @@ def _finish_execution(
 
 def _execute_locked(contract_commit: str, deadline: ExecutionDeadline) -> int:
     api_key = _preflight(contract_commit)
+    api_authentication = _require_api_authentication(api_key)
     _load_candidate_transfer()
     run_id = _run_id()
     instance = _instance_name(run_id)
@@ -5398,6 +5498,10 @@ def _execute_locked(contract_commit: str, deadline: ExecutionDeadline) -> int:
     )
     automated_work_deadline = automated_phase_deadline - CLEANUP_TIMEOUT_SECONDS
     evidence.mkdir(parents=True, exist_ok=False)
+    _write_json(
+        evidence / "setup" / API_AUTHENTICATION_REPORT,
+        api_authentication,
+    )
     recorder = Recorder(
         evidence,
         deadline_monotonic=automated_phase_deadline,
@@ -5817,6 +5921,12 @@ def _verify_pending_index(
         index_name="evidence-index.json",
         version=3,
         allowed_extra_paths=extras,
+    )
+    _validated_api_authentication_report(
+        _read_bounded_json(
+            evidence / "setup" / API_AUTHENTICATION_REPORT,
+            maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+        )
     )
     pending_result = evidence / "pending-RESULT.md"
     if "pending-RESULT.md" not in {record["path"] for record in index["files"]}:
@@ -6731,8 +6841,11 @@ def plan() -> int:
         )
     sequence.extend(
         (
-            f"agent-owned {ACTIVE_LOOP.loop_id} setup and zero scoped residue before run clocks or evidence",
-            "start run clocks and evidence, then recheck zero scoped residue",
+            "no prior result, key present, and zero scoped residue",
+            "one read-only API authentication preflight before run state; "
+            "a failure is a prerequisite refusal",
+            "load the fixed candidate-transfer boundary",
+            f"start {ACTIVE_LOOP.loop_id} run clocks and evidence, then recheck zero scoped residue",
             "exact q1-l1-evaluator fingerprint, dispatch, evaluator, and isolation validation",
             "fresh candidate VM provisioning and boundary probe",
             "stdin API-key login",
@@ -6785,6 +6898,7 @@ def plan() -> int:
                 "timeouts_seconds": {
                     "agent_guest": AGENT_TIMEOUT_SECONDS,
                     "agent_outer": AGENT_OUTER_TIMEOUT_SECONDS,
+                    "api_authentication_total": API_AUTHENTICATION_TIMEOUT_SECONDS,
                     "automated_execute": AUTOMATED_PHASE_TIMEOUT_SECONDS,
                     "automated_work_before_cleanup_reserve": (
                         AUTOMATED_PHASE_TIMEOUT_SECONDS - CLEANUP_TIMEOUT_SECONDS
