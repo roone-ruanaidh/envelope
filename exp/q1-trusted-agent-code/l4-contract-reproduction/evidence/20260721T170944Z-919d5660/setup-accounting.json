@@ -1,0 +1,32 @@
+{
+  "agent": {
+    "invocations": 0,
+    "model_cost": 0,
+    "reason": "qualification uses no API credential or model"
+  },
+  "candidate_vm": {
+    "monetary_cost": "unknown",
+    "setup_only": true
+  },
+  "evaluator": {
+    "acceptance_workload_seconds": 0,
+    "residue_probe_seconds": "unknown"
+  },
+  "human": {
+    "active_minutes": "unknown",
+    "monetary_cost": "unknown"
+  },
+  "schema_version": 1,
+  "task_measurement_started": false,
+  "trusted_machine": {
+    "artifact_self_recording_tail_seconds": "unknown",
+    "monetary_cost": "unknown",
+    "recorded_command_seconds": 177.27568012510892,
+    "setup_elapsed_lower_bound_seconds": 177.4320102080237
+  },
+  "wall": {
+    "post_cutoff_tail_seconds": "unknown",
+    "setup_elapsed_lower_bound_seconds": 177.4320102080237,
+    "task_elapsed_seconds": 0
+  }
+}

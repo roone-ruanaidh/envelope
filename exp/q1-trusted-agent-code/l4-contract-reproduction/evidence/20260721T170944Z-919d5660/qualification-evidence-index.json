@@ -1,0 +1,78 @@
+{
+  "artifact_self_recording_tail_seconds": "unknown",
+  "files": [
+    {
+      "path": "boundary-validation.json",
+      "sha256": "5c6531f97c3331dbfc49086dfe351b2051847fa448f24f8d0c96ec9e76e3f13c",
+      "size": 4515
+    },
+    {
+      "path": "commands.jsonl",
+      "sha256": "6aeb41ad07ec0070deea0300645e1dde5f4be96cd772fd4aa8b5a05442f7ef67",
+      "size": 2201
+    },
+    {
+      "path": "logs/001-provision-and-probe-candidate-vm.stderr",
+      "sha256": "077cf562227534ee9a37d53b2e45002958b75f92a47deaafff2f3263946a7f6a",
+      "size": 4388
+    },
+    {
+      "path": "logs/001-provision-and-probe-candidate-vm.stdout",
+      "sha256": "164a3b909c7ac52c15317cbca01291b084973efae458c00a5fe53c2c4e29a25e",
+      "size": 155288
+    },
+    {
+      "path": "logs/002-inspect-candidate-vm-before-teardown.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "logs/002-inspect-candidate-vm-before-teardown.stdout",
+      "sha256": "d018eb011f11205c3c2bd5c20038f1bf4cfcb6e0bcdffda68d52636a25987d1c",
+      "size": 82
+    },
+    {
+      "path": "logs/003-delete-candidate-vm.stderr",
+      "sha256": "ed45369d3cd24d548a0fc9bc15574da5d8917a57ccdde1c0d507907351a0b97b",
+      "size": 1310
+    },
+    {
+      "path": "logs/003-delete-candidate-vm.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "logs/004-verify-candidate-vm-teardown.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "logs/004-verify-candidate-vm-teardown.stdout",
+      "sha256": "146d352bba8f3b77c48a93c992730f6d48ccd4f551f348f227dad3eae7e53d79",
+      "size": 28
+    },
+    {
+      "path": "qualification.json",
+      "sha256": "494b75a8791b6698aef7bf64079372d4995bc9075aef2d36416e95b5ff51abf7",
+      "size": 810
+    },
+    {
+      "path": "redactions.json",
+      "sha256": "b17fd6a269b6754845ca0c7566c8c9152b8cd2f12ede157ab003b0b15508cd3e",
+      "size": 378
+    },
+    {
+      "path": "setup-accounting.json",
+      "sha256": "8898a17b4185796092dcc01cf39eb0b419bf3fd68b128492d7aaccfa0e21ca75",
+      "size": 823
+    },
+    {
+      "path": "terminal-RESULT.md",
+      "sha256": "d61953e04cc8613b33308b713a488c960750ed7c5e64b55049ed32489d775df7",
+      "size": 1159
+    }
+  ],
+  "generated_at": "2026-07-21T17:12:42.015769+00:00",
+  "inventory_scan_hash_elapsed_seconds": 0.001190875074826181,
+  "version": 1
+}
