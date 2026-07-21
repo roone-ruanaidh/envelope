@@ -1,0 +1,266 @@
+{
+  "authority_schema_version": 1,
+  "expected_observation": {
+    "base_image": {
+      "architecture": "aarch64",
+      "digest": "sha256:3d8db37fa9a8a0c8676dfc0ee3eb41fd0049d66cb055a792bddc8f4123443ae1",
+      "location": "https://cloud-images.ubuntu.com/releases/resolute/release-20260627/ubuntu-26.04-server-cloudimg-arm64.img"
+    },
+    "base_image_candidates": [
+      {
+        "architecture": "aarch64",
+        "digest": "sha256:3d8db37fa9a8a0c8676dfc0ee3eb41fd0049d66cb055a792bddc8f4123443ae1",
+        "location": "https://cloud-images.ubuntu.com/releases/resolute/release-20260627/ubuntu-26.04-server-cloudimg-arm64.img"
+      },
+      {
+        "architecture": "aarch64",
+        "location": "https://cloud-images.ubuntu.com/releases/resolute/release/ubuntu-26.04-server-cloudimg-arm64.img"
+      }
+    ],
+    "config": {
+      "absent_fields": [
+        "dns",
+        "port_forwards"
+      ],
+      "audio": {
+        "device": ""
+      },
+      "ca_certificates": {
+        "remove_defaults": false
+      },
+      "containerd": {
+        "archive": {
+          "architecture": "aarch64",
+          "digest": "sha256:117d65c3992e67fc4449dd501c8fba19c1d9cbf5a01fd63d68e778888f2f46e0",
+          "location": "https://github.com/containerd/nerdctl/releases/download/v2.3.4/nerdctl-full-2.3.4-linux-arm64.tar.gz"
+        },
+        "system": false,
+        "user": true
+      },
+      "firmware": {
+        "legacy_bios": false
+      },
+      "guest_install_prefix": "/usr/local",
+      "host_resolver": {
+        "enabled": true,
+        "ipv6": false
+      },
+      "inactive_backend_defaults": {
+        "mount": {
+          "nine_p": {
+            "cache": "mmap",
+            "msize": "128KiB",
+            "protocol_version": "9p2000.L",
+            "security_model": "none"
+          },
+          "sshfs": {
+            "cache": true,
+            "follow_symlinks": false,
+            "sftp_driver": ""
+          }
+        },
+        "vm_options": {
+          "qemu": {
+            "cpu_type": null,
+            "minimum_version": null
+          }
+        }
+      },
+      "minimum_lima_version": "2.0.0",
+      "mount_inotify": false,
+      "mount_type": "virtiofs",
+      "mounts": [
+        {
+          "role": "workspace-parent",
+          "writable": true
+        }
+      ],
+      "nested_virtualization": false,
+      "os": "Linux",
+      "parameters": {
+        "internal_netplan_optional": "true"
+      },
+      "plain": false,
+      "propagate_proxy_env": true,
+      "ssh": {
+        "forward_agent": false,
+        "forward_x11": false,
+        "forward_x11_trusted": false,
+        "load_dot_ssh_pub_keys": false,
+        "local_port": 0,
+        "over_vsock": true
+      },
+      "timezone": "America/Denver",
+      "upgrade_packages": false,
+      "video": {
+        "display": "none"
+      },
+      "vm_options": {
+        "vz": {
+          "disk_image_format": "raw",
+          "rosetta": {
+            "binfmt": false,
+            "enabled": false
+          }
+        }
+      }
+    },
+    "instance": {
+      "architecture": "aarch64",
+      "cpus": 6,
+      "disk_bytes": 85899345920,
+      "lima_version": "2.1.4",
+      "memory_bytes": 12884901888,
+      "name": "q1-l1-evaluator",
+      "protected": false,
+      "status": "Running",
+      "vm_type": "vz"
+    },
+    "installed_package_inventory": {
+      "count": 683,
+      "record_format": "${binary:Package}\\t${Version}\\t${Architecture}\\t${db:Status-Abbrev}\\n",
+      "sha256": "95323667b6d7322ada0268b6e17b6894e1448f1d5c42e0830e3fb9cef26c0da3",
+      "sort": "lexicographic record bytes with one final LF"
+    },
+    "isolation": {
+      "cgroup_v2": {
+        "controllers": [
+          "cpu",
+          "cpuset",
+          "dmem",
+          "hugetlb",
+          "io",
+          "memory",
+          "misc",
+          "pids",
+          "rdma"
+        ],
+        "direct_child_control": true,
+        "mounted": true
+      },
+      "filesystems": [
+        "cgroup2",
+        "ext4",
+        "overlay",
+        "tmpfs"
+      ],
+      "resource_envelope": {
+        "cpu_max": "400000 100000",
+        "memory_max_bytes": 4294967296,
+        "memory_oom_group": true,
+        "memory_swap_max_bytes": 0,
+        "pids_max": 256
+      },
+      "user_namespaces": {
+        "creation_probe": true,
+        "maximum": 43343,
+        "unprivileged_clone": true
+      },
+      "writable_state": {
+        "ephemeral_filesystem": "tmpfs",
+        "loop_mount": true,
+        "mount_namespace": true,
+        "mount_options": [
+          "nodev",
+          "noexec",
+          "nosuid"
+        ],
+        "persistent_filesystem": "ext4",
+        "private_mount_propagation": true,
+        "size_bytes": 1073741824
+      }
+    },
+    "packages": {
+      "bubblewrap": "0.11.1-1ubuntu0.1",
+      "iproute2": "6.19.0-1ubuntu1",
+      "make": "4.4.1-3",
+      "python3": "3.14.3-0ubuntu2",
+      "python3.14": "3.14.4-1ubuntu0.1",
+      "python3.14-venv": "3.14.4-1ubuntu0.1",
+      "util-linux": "2.41.3-3ubuntu2"
+    },
+    "runtime": {
+      "automatic_package_updates": {
+        "masked_units": [
+          "apt-daily-upgrade.service",
+          "apt-daily-upgrade.timer",
+          "apt-daily.service",
+          "apt-daily.timer",
+          "unattended-upgrades.service"
+        ]
+      },
+      "kernel": {
+        "machine": "aarch64",
+        "release": "7.0.0-27-generic"
+      },
+      "python": {
+        "build": [
+          "main",
+          "Jun 18 2026 14:25:02"
+        ],
+        "stdlib_tree": {
+          "algorithm": "collect_evaluator_guest.py:stdlib-tree-v1",
+          "count": 1427,
+          "directory_other_payload": "empty bytes",
+          "exclusions": [],
+          "file_content_hash": "sha256",
+          "mode_encoding": "Python oct(stat.S_IMODE(mode)) as ASCII, including 0o prefix",
+          "record_format": "type\\0mode\\0relative-path\\0(file-sha256|symlink-target)\\n",
+          "root": "/usr/lib/python3.14",
+          "root_record_included": false,
+          "sha256": "39251973ce29e8ad5a79f435facf2c568676bb6ffea40a16b24c7c51ed69c8d0",
+          "sort": "relative names by os.fsencode",
+          "symlink_target_encoding": "raw os.fsencode bytes",
+          "types": [
+            "d",
+            "f",
+            "l",
+            "o"
+          ]
+        },
+        "version": "3.14.4"
+      }
+    },
+    "schema_version": 1,
+    "tools": {
+      "bubblewrap": {
+        "path": "/usr/bin/bwrap",
+        "sha256": "29cb90e51494b3765b7b36587b0635863898d1e85025e082674121bcdf34a08b",
+        "version": "bubblewrap 0.11.1"
+      },
+      "losetup": {
+        "path": "/usr/sbin/losetup",
+        "sha256": "7aa6806b99dcdcbb6ecb052d13cbd1a154d6292adcd8bffa8159d21d7ce27073",
+        "version": "losetup from util-linux 2.41.3"
+      },
+      "mkfs_ext4": {
+        "path": "/usr/sbin/mkfs.ext4",
+        "path_kind": "symlink",
+        "resolved_path": "/usr/sbin/mke2fs",
+        "sha256": "160d49e1f062f8026b1218bfc377497943fc11fc952888fb3a041468273cec17",
+        "symlink_target": "mke2fs",
+        "version": "mke2fs 1.47.2 (1-Jan-2025)"
+      },
+      "mount": {
+        "path": "/usr/bin/mount",
+        "sha256": "c8eba940a8490b53e08a08a30e49937c81b0a132d4cf8b8f65f575b860f29573",
+        "version": "mount from util-linux 2.41.3 (libmount 2.41.3: selinux, smack, btrfs, verity, namespaces, idmapping, statmount, statx, assert, debug)"
+      },
+      "python": {
+        "path": "/usr/bin/python3.14",
+        "sha256": "fd82483aa72498a59e905cdba1ad7a5a2aea2592e7ebc6398cebdaf1dee4adac"
+      },
+      "unshare": {
+        "path": "/usr/bin/unshare",
+        "sha256": "1ab18edb2dc2b47286c6c8fe230bdfed8cfc8f62e8eafaeb4f35a0f2a1adce5e",
+        "version": "unshare from util-linux 2.41.3"
+      },
+      "umount": {
+        "path": "/usr/bin/umount",
+        "sha256": "8c92e0f21c164ad3ee7355ec6ef27a76e089dff64210c4ca64deb3f243174041",
+        "version": "umount from util-linux 2.41.3 (libmount 2.41.3: selinux, smack, btrfs, verity, namespaces, idmapping, statmount, statx, assert, debug)"
+      }
+    }
+  },
+  "package_authority_sha256": "c435587b8bd40b6c73a3f449ff22d7568b02d55ebe54db45bb4925aaa00d8281"
+}

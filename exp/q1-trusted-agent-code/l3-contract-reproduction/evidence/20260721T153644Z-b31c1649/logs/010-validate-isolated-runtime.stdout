@@ -1,0 +1,939 @@
+/usr/bin/python3 -B -I reproduction/verify_isolated_runtime.py build/isolation-validation.json
+Collecting annotated-doc==0.0.4 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 1))
+  Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+Collecting annotated-types==0.7.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 2))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting anyio==4.14.1 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 3))
+  Downloading anyio-4.14.1-py3-none-any.whl.metadata (4.6 kB)
+Collecting ast_serialize==0.6.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 4))
+  Downloading ast_serialize-0.6.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (1.3 kB)
+Collecting click==8.4.2 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 5))
+  Downloading click-8.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting fastapi==0.139.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 6))
+  Downloading fastapi-0.139.0-py3-none-any.whl.metadata (26 kB)
+Collecting h11==0.16.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 7))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting idna==3.18 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 8))
+  Downloading idna-3.18-py3-none-any.whl.metadata (6.1 kB)
+Collecting librt==0.13.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 9))
+  Downloading librt-0.13.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (1.3 kB)
+Collecting mypy==2.2.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 10))
+  Downloading mypy-2.2.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.4 kB)
+Collecting mypy_extensions==1.1.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 11))
+  Downloading mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting pathspec==1.1.1 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 12))
+  Downloading pathspec-1.1.1-py3-none-any.whl.metadata (14 kB)
+Collecting pydantic==2.13.4 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 13))
+  Downloading pydantic-2.13.4-py3-none-any.whl.metadata (109 kB)
+Collecting pydantic_core==2.46.4 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 14))
+  Downloading pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (6.6 kB)
+Collecting starlette==1.3.1 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 15))
+  Downloading starlette-1.3.1-py3-none-any.whl.metadata (6.4 kB)
+Collecting typing-inspection==0.4.2 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 16))
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting typing_extensions==4.16.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 17))
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting uvicorn==0.51.0 (from -r [HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction/public/contract/python-arm-requirements.v1.txt (line 18))
+  Downloading uvicorn-0.51.0-py3-none-any.whl.metadata (6.6 kB)
+Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading anyio-4.14.1-py3-none-any.whl (124 kB)
+Downloading ast_serialize-0.6.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 24.5 MB/s eta 0:00:00
+Downloading click-8.4.2-py3-none-any.whl (119 kB)
+Downloading fastapi-0.139.0-py3-none-any.whl (130 kB)
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading idna-3.18-py3-none-any.whl (65 kB)
+Downloading librt-0.13.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (494 kB)
+Downloading mypy-2.2.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (14.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.1/14.1 MB 42.0 MB/s eta 0:00:00
+Downloading mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+Downloading pathspec-1.1.1-py3-none-any.whl (57 kB)
+Downloading pydantic-2.13.4-py3-none-any.whl (472 kB)
+Downloading pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (2.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 56.8 MB/s eta 0:00:00
+Downloading starlette-1.3.1-py3-none-any.whl (73 kB)
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Downloading uvicorn-0.51.0-py3-none-any.whl (73 kB)
+Installing collected packages: uvicorn, typing-inspection, typing_extensions, starlette, pydantic_core, pydantic, pathspec, mypy_extensions, mypy, librt, idna, h11, fastapi, click, ast_serialize, anyio, annotated-types, annotated-doc
+
+Successfully installed annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.14.1 ast_serialize-0.6.0 click-8.4.2 fastapi-0.139.0 h11-0.16.0 idna-3.18 librt-0.13.0 mypy-2.2.0 mypy_extensions-1.1.0 pathspec-1.1.1 pydantic-2.13.4 pydantic_core-2.46.4 starlette-1.3.1 typing-inspection-0.4.2 typing_extensions-4.16.0 uvicorn-0.51.0
+No broken requirements found.
+{
+  "base_url": "http://127.0.0.1:18766",
+  "candidate_service_command": [
+    "python3",
+    "-c",
+    "import json,os\npaths=('/tmp', '/state')\nrequired=('nodev', 'noexec', 'nosuid', 'rw')\nmatches={path:[] for path in paths}\nwith open('/proc/self/mountinfo',encoding='ascii') as stream:\n for line in stream:\n  fields=line.split()\n  if len(fields)<10 or '-' not in fields:\n   raise RuntimeError('malformed mountinfo')\n  separator=fields.index('-')\n  if separator<6 or separator+3>=len(fields):\n   raise RuntimeError('malformed mountinfo separator')\n  if fields[4] in matches:\n   options=set(fields[5].split(','))\n   matches[fields[4]].append(tuple(sorted(options.intersection(required))))\nif any(len(matches[path])!=1 or matches[path][0]!=required for path in paths):\n raise RuntimeError('required writable mount options are absent or ambiguous')\nmount_options={path:list(matches[path][0]) for path in paths}\nstats=[os.statvfs(path) for path in paths]\nif any(item.f_blocks*item.f_frsize>1073741824 for item in stats):\n raise RuntimeError('writable-state capacity exceeds one GiB')\nif os.stat(paths[0]).st_dev!=os.stat(paths[1]).st_dev:\n raise RuntimeError('service writable paths are not one filesystem')\nprint('q1-l1-service-mount-options='+json.dumps(mount_options,sort_keys=True,separators=(',',':')),flush=True)\nimport runpy\nrunpy.run_path('/work/isolation_probe_service.py',run_name='__main__')\n",
+    "[HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction"
+  ],
+  "contract_version": "1.0.0",
+  "duration_ms": 694,
+  "evaluator_version": "0.1.0",
+  "failure_class": null,
+  "infrastructure_failure": false,
+  "layers": {
+    "authority": {
+      "passed": true,
+      "tests": [
+        "stale_and_cross_job_authority"
+      ]
+    },
+    "cleanup": {
+      "passed": true,
+      "tests": [
+        "bounded_cleanup"
+      ]
+    },
+    "concurrency": {
+      "passed": true,
+      "tests": [
+        "concurrent_single_claim",
+        "concurrent_expired_reclaim",
+        "concurrent_multi_job_claims"
+      ]
+    },
+    "idempotency": {
+      "passed": true,
+      "tests": [
+        "idempotent_submission",
+        "concurrent_idempotent_replay"
+      ]
+    },
+    "persistence": {
+      "passed": true,
+      "tests": [
+        "graceful_and_abrupt_persistence"
+      ]
+    },
+    "protocol": {
+      "passed": true,
+      "tests": [
+        "protocol_and_schema"
+      ]
+    },
+    "state_model": {
+      "passed": true,
+      "tests": [
+        "sequential_transitions"
+      ]
+    },
+    "temporal": {
+      "passed": true,
+      "tests": [
+        "frozen_clock_and_ttl_boundary",
+        "renewal_from_current_time"
+      ]
+    }
+  },
+  "limits": {
+    "request_timeout_seconds": 3.0,
+    "shutdown_timeout_seconds": 1.5,
+    "startup_timeout_seconds": 8.0,
+    "suite_timeout_seconds": 45.0
+  },
+  "passed": true,
+  "service_command": "/usr/bin/python3 -B -I -c 'import runpy,sys;sys.path.insert(0,\".\");module=sys.argv.pop(1);runpy.run_module(module,run_name=\"__main__\")' evaluator.isolated_service",
+  "service_log_tail": "q1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\n",
+  "shutdowns": [
+    {
+      "elapsed_seconds": 0.03180670799338259,
+      "forced_kill": false,
+      "graceful_requested": true,
+      "return_code": 0
+    },
+    {
+      "elapsed_seconds": 0.015800597000634298,
+      "forced_kill": false,
+      "graceful_requested": false,
+      "return_code": 137
+    },
+    {
+      "elapsed_seconds": 0.03201497899135575,
+      "forced_kill": false,
+      "graceful_requested": true,
+      "return_code": 0
+    }
+  ],
+  "started_at": "2026-07-21T15:37:08.254717+00:00",
+  "startup_error": null,
+  "startup_failure_origin": null,
+  "startup_return_code": null,
+  "tests": [
+    {
+      "detail": null,
+      "duration_ms": 33,
+      "failure_origin": null,
+      "layer": "protocol",
+      "name": "protocol_and_schema",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 13,
+      "failure_origin": null,
+      "layer": "state_model",
+      "name": "sequential_transitions",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 6,
+      "failure_origin": null,
+      "layer": "idempotency",
+      "name": "idempotent_submission",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 14,
+      "failure_origin": null,
+      "layer": "idempotency",
+      "name": "concurrent_idempotent_replay",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 55,
+      "failure_origin": null,
+      "layer": "temporal",
+      "name": "frozen_clock_and_ttl_boundary",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 9,
+      "failure_origin": null,
+      "layer": "temporal",
+      "name": "renewal_from_current_time",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 15,
+      "failure_origin": null,
+      "layer": "authority",
+      "name": "stale_and_cross_job_authority",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 9,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_single_claim",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 65,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_expired_reclaim",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 49,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_multi_job_claims",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 287,
+      "failure_origin": null,
+      "layer": "persistence",
+      "name": "graceful_and_abrupt_persistence",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 32,
+      "failure_origin": null,
+      "layer": "cleanup",
+      "name": "bounded_cleanup",
+      "passed": true
+    }
+  ]
+}
+{
+  "base_url": "http://127.0.0.1:18766",
+  "candidate_service_command": [
+    "python3",
+    "-c",
+    "import json,os\npaths=('/tmp', '/state')\nrequired=('nodev', 'noexec', 'nosuid', 'rw')\nmatches={path:[] for path in paths}\nwith open('/proc/self/mountinfo',encoding='ascii') as stream:\n for line in stream:\n  fields=line.split()\n  if len(fields)<10 or '-' not in fields:\n   raise RuntimeError('malformed mountinfo')\n  separator=fields.index('-')\n  if separator<6 or separator+3>=len(fields):\n   raise RuntimeError('malformed mountinfo separator')\n  if fields[4] in matches:\n   options=set(fields[5].split(','))\n   matches[fields[4]].append(tuple(sorted(options.intersection(required))))\nif any(len(matches[path])!=1 or matches[path][0]!=required for path in paths):\n raise RuntimeError('required writable mount options are absent or ambiguous')\nmount_options={path:list(matches[path][0]) for path in paths}\nstats=[os.statvfs(path) for path in paths]\nif any(item.f_blocks*item.f_frsize>1073741824 for item in stats):\n raise RuntimeError('writable-state capacity exceeds one GiB')\nif os.stat(paths[0]).st_dev!=os.stat(paths[1]).st_dev:\n raise RuntimeError('service writable paths are not one filesystem')\nprint('q1-l1-service-mount-options='+json.dumps(mount_options,sort_keys=True,separators=(',',':')),flush=True)\nos.environ['Q1_L1_FIXTURE_MODE']='ignore_sigterm'\nimport runpy\nrunpy.run_path('/work/isolation_probe_service.py',run_name='__main__')\n",
+    "[HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction"
+  ],
+  "contract_version": "1.0.0",
+  "duration_ms": 3520,
+  "evaluator_version": "0.1.0",
+  "failure_class": "candidate_failure",
+  "infrastructure_failure": false,
+  "layers": {
+    "authority": {
+      "passed": true,
+      "tests": [
+        "stale_and_cross_job_authority"
+      ]
+    },
+    "cleanup": {
+      "passed": false,
+      "tests": [
+        "bounded_cleanup"
+      ]
+    },
+    "concurrency": {
+      "passed": true,
+      "tests": [
+        "concurrent_single_claim",
+        "concurrent_expired_reclaim",
+        "concurrent_multi_job_claims"
+      ]
+    },
+    "idempotency": {
+      "passed": true,
+      "tests": [
+        "idempotent_submission",
+        "concurrent_idempotent_replay"
+      ]
+    },
+    "persistence": {
+      "passed": false,
+      "tests": [
+        "graceful_and_abrupt_persistence"
+      ]
+    },
+    "protocol": {
+      "passed": true,
+      "tests": [
+        "protocol_and_schema"
+      ]
+    },
+    "state_model": {
+      "passed": true,
+      "tests": [
+        "sequential_transitions"
+      ]
+    },
+    "temporal": {
+      "passed": true,
+      "tests": [
+        "frozen_clock_and_ttl_boundary",
+        "renewal_from_current_time"
+      ]
+    }
+  },
+  "limits": {
+    "request_timeout_seconds": 3.0,
+    "shutdown_timeout_seconds": 1.5,
+    "startup_timeout_seconds": 8.0,
+    "suite_timeout_seconds": 45.0
+  },
+  "passed": false,
+  "service_command": "/usr/bin/python3 -B -I -c 'import runpy,sys;sys.path.insert(0,\".\");module=sys.argv.pop(1);runpy.run_module(module,run_name=\"__main__\")' evaluator.isolated_service",
+  "service_log_tail": "q1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\n",
+  "shutdowns": [
+    {
+      "elapsed_seconds": 1.5333424150012434,
+      "forced_kill": true,
+      "graceful_requested": true,
+      "return_code": 137
+    },
+    {
+      "elapsed_seconds": 1.5369501770182978,
+      "forced_kill": true,
+      "graceful_requested": true,
+      "return_code": 137
+    }
+  ],
+  "started_at": "2026-07-21T15:37:09.043312+00:00",
+  "startup_error": null,
+  "startup_failure_origin": null,
+  "startup_return_code": null,
+  "tests": [
+    {
+      "detail": null,
+      "duration_ms": 32,
+      "failure_origin": null,
+      "layer": "protocol",
+      "name": "protocol_and_schema",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 12,
+      "failure_origin": null,
+      "layer": "state_model",
+      "name": "sequential_transitions",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 6,
+      "failure_origin": null,
+      "layer": "idempotency",
+      "name": "idempotent_submission",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 15,
+      "failure_origin": null,
+      "layer": "idempotency",
+      "name": "concurrent_idempotent_replay",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 56,
+      "failure_origin": null,
+      "layer": "temporal",
+      "name": "frozen_clock_and_ttl_boundary",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 9,
+      "failure_origin": null,
+      "layer": "temporal",
+      "name": "renewal_from_current_time",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 15,
+      "failure_origin": null,
+      "layer": "authority",
+      "name": "stale_and_cross_job_authority",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 16,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_single_claim",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 44,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_expired_reclaim",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "duration_ms": 32,
+      "failure_origin": null,
+      "layer": "concurrency",
+      "name": "concurrent_multi_job_claims",
+      "passed": true
+    },
+    {
+      "detail": "evaluator.acceptance.AcceptanceFailure: graceful restart did not exit cleanly: ShutdownResult(graceful_requested=True, forced_kill=True, return_code=137, elapsed_seconds=1.5333424150012434)",
+      "duration_ms": 1640,
+      "failure_origin": "candidate",
+      "layer": "persistence",
+      "name": "graceful_and_abrupt_persistence",
+      "passed": false
+    },
+    {
+      "detail": "evaluator.acceptance.AcceptanceFailure: service ignored SIGTERM and required SIGKILL",
+      "duration_ms": 1537,
+      "failure_origin": "candidate",
+      "layer": "cleanup",
+      "name": "bounded_cleanup",
+      "passed": false
+    }
+  ]
+}
+{
+  "candidate_acceptance": {
+    "base_url": "http://127.0.0.1:18766",
+    "candidate_service_command": [
+      "python3",
+      "-c",
+      "import json,os\npaths=('/tmp', '/state')\nrequired=('nodev', 'noexec', 'nosuid', 'rw')\nmatches={path:[] for path in paths}\nwith open('/proc/self/mountinfo',encoding='ascii') as stream:\n for line in stream:\n  fields=line.split()\n  if len(fields)<10 or '-' not in fields:\n   raise RuntimeError('malformed mountinfo')\n  separator=fields.index('-')\n  if separator<6 or separator+3>=len(fields):\n   raise RuntimeError('malformed mountinfo separator')\n  if fields[4] in matches:\n   options=set(fields[5].split(','))\n   matches[fields[4]].append(tuple(sorted(options.intersection(required))))\nif any(len(matches[path])!=1 or matches[path][0]!=required for path in paths):\n raise RuntimeError('required writable mount options are absent or ambiguous')\nmount_options={path:list(matches[path][0]) for path in paths}\nstats=[os.statvfs(path) for path in paths]\nif any(item.f_blocks*item.f_frsize>1073741824 for item in stats):\n raise RuntimeError('writable-state capacity exceeds one GiB')\nif os.stat(paths[0]).st_dev!=os.stat(paths[1]).st_dev:\n raise RuntimeError('service writable paths are not one filesystem')\nprint('q1-l1-service-mount-options='+json.dumps(mount_options,sort_keys=True,separators=(',',':')),flush=True)\nimport runpy\nrunpy.run_path('/work/isolation_probe_service.py',run_name='__main__')\n",
+      "[HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction"
+    ],
+    "contract_version": "1.0.0",
+    "duration_ms": 694,
+    "evaluator_version": "0.1.0",
+    "failure_class": null,
+    "infrastructure_failure": false,
+    "layers": {
+      "authority": {
+        "passed": true,
+        "tests": [
+          "stale_and_cross_job_authority"
+        ]
+      },
+      "cleanup": {
+        "passed": true,
+        "tests": [
+          "bounded_cleanup"
+        ]
+      },
+      "concurrency": {
+        "passed": true,
+        "tests": [
+          "concurrent_single_claim",
+          "concurrent_expired_reclaim",
+          "concurrent_multi_job_claims"
+        ]
+      },
+      "idempotency": {
+        "passed": true,
+        "tests": [
+          "idempotent_submission",
+          "concurrent_idempotent_replay"
+        ]
+      },
+      "persistence": {
+        "passed": true,
+        "tests": [
+          "graceful_and_abrupt_persistence"
+        ]
+      },
+      "protocol": {
+        "passed": true,
+        "tests": [
+          "protocol_and_schema"
+        ]
+      },
+      "state_model": {
+        "passed": true,
+        "tests": [
+          "sequential_transitions"
+        ]
+      },
+      "temporal": {
+        "passed": true,
+        "tests": [
+          "frozen_clock_and_ttl_boundary",
+          "renewal_from_current_time"
+        ]
+      }
+    },
+    "limits": {
+      "request_timeout_seconds": 3.0,
+      "shutdown_timeout_seconds": 1.5,
+      "startup_timeout_seconds": 8.0,
+      "suite_timeout_seconds": 45.0
+    },
+    "passed": true,
+    "service_command": "/usr/bin/python3 -B -I -c 'import runpy,sys;sys.path.insert(0,\".\");module=sys.argv.pop(1);runpy.run_module(module,run_name=\"__main__\")' evaluator.isolated_service",
+    "service_log_tail": "q1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\n",
+    "shutdowns": [
+      {
+        "elapsed_seconds": 0.03180670799338259,
+        "forced_kill": false,
+        "graceful_requested": true,
+        "return_code": 0
+      },
+      {
+        "elapsed_seconds": 0.015800597000634298,
+        "forced_kill": false,
+        "graceful_requested": false,
+        "return_code": 137
+      },
+      {
+        "elapsed_seconds": 0.03201497899135575,
+        "forced_kill": false,
+        "graceful_requested": true,
+        "return_code": 0
+      }
+    ],
+    "started_at": "2026-07-21T15:37:08.254717+00:00",
+    "startup_error": null,
+    "startup_failure_origin": null,
+    "startup_return_code": null,
+    "tests": [
+      {
+        "detail": null,
+        "duration_ms": 33,
+        "failure_origin": null,
+        "layer": "protocol",
+        "name": "protocol_and_schema",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 13,
+        "failure_origin": null,
+        "layer": "state_model",
+        "name": "sequential_transitions",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 6,
+        "failure_origin": null,
+        "layer": "idempotency",
+        "name": "idempotent_submission",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 14,
+        "failure_origin": null,
+        "layer": "idempotency",
+        "name": "concurrent_idempotent_replay",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 55,
+        "failure_origin": null,
+        "layer": "temporal",
+        "name": "frozen_clock_and_ttl_boundary",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 9,
+        "failure_origin": null,
+        "layer": "temporal",
+        "name": "renewal_from_current_time",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 15,
+        "failure_origin": null,
+        "layer": "authority",
+        "name": "stale_and_cross_job_authority",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 9,
+        "failure_origin": null,
+        "layer": "concurrency",
+        "name": "concurrent_single_claim",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 65,
+        "failure_origin": null,
+        "layer": "concurrency",
+        "name": "concurrent_expired_reclaim",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 49,
+        "failure_origin": null,
+        "layer": "concurrency",
+        "name": "concurrent_multi_job_claims",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 287,
+        "failure_origin": null,
+        "layer": "persistence",
+        "name": "graceful_and_abrupt_persistence",
+        "passed": true
+      },
+      {
+        "detail": null,
+        "duration_ms": 32,
+        "failure_origin": null,
+        "layer": "cleanup",
+        "name": "bounded_cleanup",
+        "passed": true
+      }
+    ]
+  },
+  "candidate_exit_125_probe": {
+    "return_code": 1,
+    "stderr": "q1-l1-isolated-command-completed-v1\n"
+  },
+  "command_probe": {
+    "return_code": 0,
+    "stderr": "q1-l1-isolated-command-completed-v1\n",
+    "stdout": "isolated-command-ok\n"
+  },
+  "cpu_limit_probe": {
+    "return_code": 125,
+    "stderr": "isolated command wrapper failed: 4-CPU quota was reached\nq1-l1-isolated-command-completed-v1\n"
+  },
+  "descendant_cleanup_probe": {
+    "return_code": 126,
+    "stderr": "declared foreground command left a surviving process\nq1-l1-isolated-command-completed-v1\n",
+    "survived": false
+  },
+  "generated_at": "2026-07-21T15:37:13.886805+00:00",
+  "ignored_sigterm_probe": {
+    "candidate_acceptance": {
+      "base_url": "http://127.0.0.1:18766",
+      "candidate_service_command": [
+        "python3",
+        "-c",
+        "import json,os\npaths=('/tmp', '/state')\nrequired=('nodev', 'noexec', 'nosuid', 'rw')\nmatches={path:[] for path in paths}\nwith open('/proc/self/mountinfo',encoding='ascii') as stream:\n for line in stream:\n  fields=line.split()\n  if len(fields)<10 or '-' not in fields:\n   raise RuntimeError('malformed mountinfo')\n  separator=fields.index('-')\n  if separator<6 or separator+3>=len(fields):\n   raise RuntimeError('malformed mountinfo separator')\n  if fields[4] in matches:\n   options=set(fields[5].split(','))\n   matches[fields[4]].append(tuple(sorted(options.intersection(required))))\nif any(len(matches[path])!=1 or matches[path][0]!=required for path in paths):\n raise RuntimeError('required writable mount options are absent or ambiguous')\nmount_options={path:list(matches[path][0]) for path in paths}\nstats=[os.statvfs(path) for path in paths]\nif any(item.f_blocks*item.f_frsize>1073741824 for item in stats):\n raise RuntimeError('writable-state capacity exceeds one GiB')\nif os.stat(paths[0]).st_dev!=os.stat(paths[1]).st_dev:\n raise RuntimeError('service writable paths are not one filesystem')\nprint('q1-l1-service-mount-options='+json.dumps(mount_options,sort_keys=True,separators=(',',':')),flush=True)\nos.environ['Q1_L1_FIXTURE_MODE']='ignore_sigterm'\nimport runpy\nrunpy.run_path('/work/isolation_probe_service.py',run_name='__main__')\n",
+        "[HOST_REPOSITORY]/exp/q1-trusted-agent-code/l1-contract-reproduction"
+      ],
+      "contract_version": "1.0.0",
+      "duration_ms": 3520,
+      "evaluator_version": "0.1.0",
+      "failure_class": "candidate_failure",
+      "infrastructure_failure": false,
+      "layers": {
+        "authority": {
+          "passed": true,
+          "tests": [
+            "stale_and_cross_job_authority"
+          ]
+        },
+        "cleanup": {
+          "passed": false,
+          "tests": [
+            "bounded_cleanup"
+          ]
+        },
+        "concurrency": {
+          "passed": true,
+          "tests": [
+            "concurrent_single_claim",
+            "concurrent_expired_reclaim",
+            "concurrent_multi_job_claims"
+          ]
+        },
+        "idempotency": {
+          "passed": true,
+          "tests": [
+            "idempotent_submission",
+            "concurrent_idempotent_replay"
+          ]
+        },
+        "persistence": {
+          "passed": false,
+          "tests": [
+            "graceful_and_abrupt_persistence"
+          ]
+        },
+        "protocol": {
+          "passed": true,
+          "tests": [
+            "protocol_and_schema"
+          ]
+        },
+        "state_model": {
+          "passed": true,
+          "tests": [
+            "sequential_transitions"
+          ]
+        },
+        "temporal": {
+          "passed": true,
+          "tests": [
+            "frozen_clock_and_ttl_boundary",
+            "renewal_from_current_time"
+          ]
+        }
+      },
+      "limits": {
+        "request_timeout_seconds": 3.0,
+        "shutdown_timeout_seconds": 1.5,
+        "startup_timeout_seconds": 8.0,
+        "suite_timeout_seconds": 45.0
+      },
+      "passed": false,
+      "service_command": "/usr/bin/python3 -B -I -c 'import runpy,sys;sys.path.insert(0,\".\");module=sys.argv.pop(1);runpy.run_module(module,run_name=\"__main__\")' evaluator.isolated_service",
+      "service_log_tail": "q1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\nq1-l1-service-mount-options={\"/state\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"],\"/tmp\":[\"nodev\",\"noexec\",\"nosuid\",\"rw\"]}\n{\"candidate_external_route\": \"blocked\", \"evaluator_source\": \"absent\", \"persistent_writes\": \"state_only\", \"work_mount\": \"read_only\"}\n",
+      "shutdowns": [
+        {
+          "elapsed_seconds": 1.5333424150012434,
+          "forced_kill": true,
+          "graceful_requested": true,
+          "return_code": 137
+        },
+        {
+          "elapsed_seconds": 1.5369501770182978,
+          "forced_kill": true,
+          "graceful_requested": true,
+          "return_code": 137
+        }
+      ],
+      "started_at": "2026-07-21T15:37:09.043312+00:00",
+      "startup_error": null,
+      "startup_failure_origin": null,
+      "startup_return_code": null,
+      "tests": [
+        {
+          "detail": null,
+          "duration_ms": 32,
+          "failure_origin": null,
+          "layer": "protocol",
+          "name": "protocol_and_schema",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 12,
+          "failure_origin": null,
+          "layer": "state_model",
+          "name": "sequential_transitions",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 6,
+          "failure_origin": null,
+          "layer": "idempotency",
+          "name": "idempotent_submission",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 15,
+          "failure_origin": null,
+          "layer": "idempotency",
+          "name": "concurrent_idempotent_replay",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 56,
+          "failure_origin": null,
+          "layer": "temporal",
+          "name": "frozen_clock_and_ttl_boundary",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 9,
+          "failure_origin": null,
+          "layer": "temporal",
+          "name": "renewal_from_current_time",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 15,
+          "failure_origin": null,
+          "layer": "authority",
+          "name": "stale_and_cross_job_authority",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 16,
+          "failure_origin": null,
+          "layer": "concurrency",
+          "name": "concurrent_single_claim",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 44,
+          "failure_origin": null,
+          "layer": "concurrency",
+          "name": "concurrent_expired_reclaim",
+          "passed": true
+        },
+        {
+          "detail": null,
+          "duration_ms": 32,
+          "failure_origin": null,
+          "layer": "concurrency",
+          "name": "concurrent_multi_job_claims",
+          "passed": true
+        },
+        {
+          "detail": "evaluator.acceptance.AcceptanceFailure: graceful restart did not exit cleanly: ShutdownResult(graceful_requested=True, forced_kill=True, return_code=137, elapsed_seconds=1.5333424150012434)",
+          "duration_ms": 1640,
+          "failure_origin": "candidate",
+          "layer": "persistence",
+          "name": "graceful_and_abrupt_persistence",
+          "passed": false
+        },
+        {
+          "detail": "evaluator.acceptance.AcceptanceFailure: service ignored SIGTERM and required SIGKILL",
+          "duration_ms": 1537,
+          "failure_origin": "candidate",
+          "layer": "cleanup",
+          "name": "bounded_cleanup",
+          "passed": false
+        }
+      ]
+    },
+    "rerun_return_code": 1
+  },
+  "memory_limit_probe": {
+    "return_code": 125,
+    "stderr": "isolated command wrapper failed: 4-GiB memory limit was reached; candidate tasks survived Bubblewrap teardown\nq1-l1-isolated-command-completed-v1\n"
+  },
+  "passed": true,
+  "pids_limit_probe": {
+    "return_code": 125,
+    "stderr": "isolated command wrapper failed: 256-task limit was reached\nq1-l1-isolated-command-completed-v1\n"
+  },
+  "production_limit_exports_match": true,
+  "rerun_return_code": 0,
+  "runtime_residue_after_forced_candidate_stop": {
+    "cgroups": 0,
+    "loops": 0,
+    "mounts": 0
+  },
+  "service_writable_mount_probe": {
+    "observed_required_options": {
+      "/state": [
+        "nodev",
+        "noexec",
+        "nosuid",
+        "rw"
+      ],
+      "/tmp": [
+        "nodev",
+        "noexec",
+        "nosuid",
+        "rw"
+      ]
+    },
+    "passed": true
+  },
+  "source_unchanged": true,
+  "typing_shadow_probe": {
+    "return_code": 0,
+    "stderr": "q1-l1-isolated-command-completed-v1\n",
+    "stdout": "mypy 2.2.0 (compiled: yes)\n"
+  },
+  "wrapper_exit_125_probe": {
+    "return_code": 125,
+    "stderr": "isolated command wrapper failed: candidate root and evaluator source tree must be disjoint\n",
+    "stdout": ""
+  },
+  "writable_state_probe": {
+    "observed": {
+      "capacities": [
+        1073741824,
+        1073741824
+      ],
+      "mount_options": {
+        "/q1-l1-state": [
+          "nodev",
+          "noexec",
+          "nosuid",
+          "rw"
+        ],
+        "/tmp": [
+          "nodev",
+          "noexec",
+          "nosuid",
+          "rw"
+        ]
+      },
+      "same_filesystem": true
+    },
+    "return_code": 0,
+    "stderr": "q1-l1-isolated-command-completed-v1\n"
+  }
+}
