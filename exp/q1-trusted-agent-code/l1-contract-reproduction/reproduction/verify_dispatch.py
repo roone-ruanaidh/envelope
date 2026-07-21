@@ -38,6 +38,8 @@ L8_ROOT = ROOT.parent / "l8-contract-reproduction"
 L8_RUNNER = L8_ROOT / "reproduction" / "run_l8.py"
 L9_ROOT = ROOT.parent / "l9-contract-reproduction"
 L9_RUNNER = L9_ROOT / "reproduction" / "run_l9.py"
+L10_ROOT = ROOT.parent / "l10-contract-reproduction"
+L10_RUNNER = L10_ROOT / "reproduction" / "run_l10.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -121,6 +123,18 @@ DERIVED_LOOPS = (
         },
         "root": L9_ROOT,
         "runner": L9_RUNNER,
+        "qualification": None,
+    },
+    {
+        "id": "Q1/L10",
+        "intervention": "explicit_schema_const_types",
+        "prior": {
+            "loop_id": "Q1/L9",
+            "result_commit": "5b1e496bc3ee5bc7c673668c0cabb875896af801",
+            "run_id": "20260721T205408Z-36bfc6d1",
+        },
+        "root": L10_ROOT,
+        "runner": L10_RUNNER,
         "qualification": None,
     },
 )
@@ -993,11 +1007,12 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(schema["required"], ["completion"])
         completion = schema["properties"]["completion"]
-        statuses = {
-            branch["properties"]["status"]["const"]
-            for branch in completion["anyOf"]
-        }
+        status_schemas = [
+            branch["properties"]["status"] for branch in completion["anyOf"]
+        ]
+        statuses = {status["const"] for status in status_schemas}
         self.assertEqual(statuses, {"blocked", "declared_complete"})
+        self.assertTrue(all(status["type"] == "string" for status in status_schemas))
         remediation = (
             ROOT / "reproduction" / "agent-remediation-prompt.md"
         ).read_text(encoding="utf-8")

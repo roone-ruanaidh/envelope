@@ -17,7 +17,8 @@
               "type": "array"
             },
             "status": {
-              "const": "declared_complete"
+              "const": "declared_complete",
+              "type": "string"
             }
           },
           "required": [
@@ -35,7 +36,8 @@
               "type": "string"
             },
             "status": {
-              "const": "blocked"
+              "const": "blocked",
+              "type": "string"
             }
           },
           "required": [
