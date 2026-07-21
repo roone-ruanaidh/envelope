@@ -23,6 +23,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
+L2_ROOT = ROOT.parent / "l2-contract-reproduction"
+L2_RUNNER = L2_ROOT / "reproduction" / "run_l2.py"
 sys.path.insert(0, str(ROOT / "reproduction"))
 sys.path.insert(0, str(ROOT))
 
@@ -970,6 +972,18 @@ class ContractMechanicsTests(unittest.TestCase):
             plan["agent_budget"],
             {"initial": 1, "remediation": 1, "retries": 0, "same_thread": True},
         )
+        self.assertEqual(
+            plan["experiment"],
+            {
+                "loop": {"id": "Q1/L1", "intervention": "baseline"},
+                "schema_version": 1,
+                "workload": {
+                    "id": "q1-lease-service-v1",
+                    "resource_namespace": "q1-l1",
+                    "source_loop": "Q1/L1",
+                },
+            },
+        )
         self.assertEqual(plan["timeouts_seconds"]["agent_guest"], 1800)
         self.assertEqual(plan["timeouts_seconds"]["agent_outer"], 1860)
         self.assertEqual(plan["timeouts_seconds"]["automated_execute"], 10800)
@@ -983,6 +997,135 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertTrue(
             any("human attestation" in step for step in plan["sequence"])
         )
+
+    def test_l2_launcher_selects_only_loop_owned_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            completed = subprocess.run(
+                [sys.executable, "-B", "-I", str(L2_RUNNER), "plan"],
+                cwd=temporary,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        plan = json.loads(completed.stdout)
+        self.assertEqual(plan["experiment"]["loop"], {
+            "id": "Q1/L2",
+            "intervention": "hermetic_dispatch_test_state",
+        })
+        self.assertEqual(
+            plan["experiment"]["workload"],
+            {
+                "id": "q1-lease-service-v1",
+                "resource_namespace": "q1-l1",
+                "source_loop": "Q1/L1",
+            },
+        )
+        self.assertEqual(plan["evaluator"]["instance"], "q1-l1-evaluator")
+        self.assertIn("Q1/L2", plan["sequence"][1])
+
+    def test_l2_context_capture_and_result_are_loop_scoped(self) -> None:
+        context = run_l1.LoopContext(
+            loop_id="Q1/L2",
+            root=L2_ROOT,
+            intervention="hermetic_dispatch_test_state",
+            launcher=L2_RUNNER,
+            prior_loop_id="Q1/L1",
+            prior_run_id="20260721T062629Z-b09fbc7b",
+            prior_result_commit="c069bc0a19b410562b30b78885efd3618fb41ec9",
+        )
+        self.addCleanup(run_l1.configure_loop, run_l1.DEFAULT_LOOP)
+        run_l1.configure_loop(context)
+        self.assertEqual(run_l1.ROOT, ROOT)
+        self.assertEqual(run_l1.REPRODUCTION, ROOT / "reproduction")
+        self.assertEqual(run_l1.EVIDENCE_ROOT, L2_ROOT / "evidence")
+        self.assertEqual(run_l1.RESULT_PATH, L2_ROOT / "RESULT.md")
+        self.assertEqual(run_l1.EVALUATOR_INSTANCE, "q1-l1-evaluator")
+        rendered = run_l1._render_result(
+            {
+                "completed_attempts": 0,
+                "contract_commit": "a" * 40,
+                "disposition_reason": "test",
+                "run_id": "20260101T000000Z-deadbeef",
+                "status": "Inconclusive",
+            }
+        )
+        self.assertTrue(rendered.startswith("# Q1/L2 result"))
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence_root = Path(temporary) / "evidence"
+            evidence = evidence_root / "20260101T000000Z-deadbeef"
+            evidence.mkdir(parents=True)
+            with patch.object(run_l1, "EVIDENCE_ROOT", evidence_root):
+                run_l1._copy_run_authorities(evidence)
+            required = {
+                path.relative_to(evidence).as_posix()
+                for path in run_l1._required_evidence(
+                    evidence,
+                    {"agent_attempts_invoked": 0},
+                )
+            }
+            self.assertTrue(
+                {
+                    "context.json",
+                    "authorities/loop/run_l2.py",
+                    "authorities/workload/LOOP.md",
+                }.issubset(required)
+            )
+            self.assertEqual(
+                (evidence / "authorities" / "LOOP.md").read_bytes(),
+                (L2_ROOT / "LOOP.md").read_bytes(),
+            )
+            self.assertEqual(
+                (evidence / "authorities" / "workload" / "LOOP.md").read_bytes(),
+                (ROOT / "LOOP.md").read_bytes(),
+            )
+            unsafe = {
+                path.relative_to(evidence).as_posix(): sorted(
+                    run_l1._public_safety_labels(
+                        path.read_bytes(),
+                        check_host_paths=True,
+                    )
+                )
+                for path in evidence.rglob("*")
+                if path.is_file()
+                and run_l1._public_safety_labels(
+                    path.read_bytes(),
+                    check_host_paths=True,
+                )
+            }
+            self.assertEqual(unsafe, {})
+        encoded = json.dumps(run_l1._run_context_record()).encode()
+        self.assertEqual(
+            run_l1._public_safety_labels(encoded, check_host_paths=True),
+            set(),
+        )
+
+    def test_loop_context_rejects_an_external_root_without_mutation(self) -> None:
+        before = run_l1.ACTIVE_LOOP
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(ValueError, "direct Q1 loop directory"):
+                run_l1.configure_loop(
+                    run_l1.LoopContext(
+                        loop_id="Q1/L2",
+                        root=Path(temporary) / "l2-contract-reproduction",
+                        intervention="hermetic_dispatch_test_state",
+                    )
+                )
+        self.assertEqual(run_l1.ACTIVE_LOOP, before)
+
+    def test_derived_loop_context_requires_its_launcher(self) -> None:
+        before = run_l1.ACTIVE_LOOP
+        with self.assertRaisesRegex(ValueError, "requires its reviewed launcher"):
+            run_l1.configure_loop(
+                run_l1.LoopContext(
+                    loop_id="Q1/L2",
+                    root=L2_ROOT,
+                    intervention="hermetic_dispatch_test_state",
+                )
+            )
+        self.assertEqual(run_l1.ACTIVE_LOOP, before)
 
     def test_recorder_enforces_stream_limit_as_infrastructure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

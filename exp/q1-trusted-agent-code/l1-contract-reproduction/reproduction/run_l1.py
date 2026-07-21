@@ -1,4 +1,4 @@
-"""Execute the approved Q1/L1 workflow or finalize its human review gate."""
+"""Execute one approved loop over the frozen Q1 lease-service workload."""
 
 from __future__ import annotations
 
@@ -24,21 +24,62 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Sequence, cast
 
-ROOT = Path(__file__).resolve().parents[1]
+
+@dataclass(frozen=True)
+class WorkloadContext:
+    workload_id: str
+    authority_root: Path
+    resource_namespace: str
+    evaluator_instance: str
+    model: str
+    reasoning_effort: str
+    codex_version: str
+
+
+@dataclass(frozen=True)
+class LoopContext:
+    loop_id: str
+    root: Path
+    intervention: str
+    launcher: Path | None = None
+    prior_loop_id: str | None = None
+    prior_run_id: str | None = None
+    prior_result_commit: str | None = None
+
+
+WORKLOAD = WorkloadContext(
+    workload_id="q1-lease-service-v1",
+    authority_root=Path(__file__).resolve().parents[1],
+    resource_namespace="q1-l1",
+    evaluator_instance="q1-l1-evaluator",
+    model="gpt-5.6-luna",
+    reasoning_effort="max",
+    codex_version="codex-cli 0.144.6",
+)
+ROOT = WORKLOAD.authority_root
 REPOSITORY_ROOT = ROOT.parents[2]
 REPRODUCTION = ROOT / "reproduction"
 QUESTION_PATH = ROOT.parent / "QUESTION.md"
 if str(REPRODUCTION) not in sys.path:
     sys.path.insert(0, str(REPRODUCTION))
 
-EVIDENCE_ROOT = ROOT / "evidence"
-RESULT_PATH = ROOT / "RESULT.md"
+DEFAULT_LOOP = LoopContext(
+    loop_id="Q1/L1",
+    root=ROOT,
+    intervention="baseline",
+)
+ACTIVE_LOOP = DEFAULT_LOOP
+LOOP_ROOT = ACTIVE_LOOP.root
+LOOP_PATH = LOOP_ROOT / "LOOP.md"
+LOOP_AUTHORITY_PATHS: tuple[Path, ...] = ()
+EVIDENCE_ROOT = LOOP_ROOT / "evidence"
+RESULT_PATH = LOOP_ROOT / "RESULT.md"
 HOST_HOME = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
-EVALUATOR_INSTANCE = "q1-l1-evaluator"
+EVALUATOR_INSTANCE = WORKLOAD.evaluator_instance
 EVALUATOR_RUN_DIRECTORY_MODE = 0o711
-MODEL = "gpt-5.6-luna"
-REASONING_EFFORT = "max"
-CODEX_VERSION = "codex-cli 0.144.6"
+MODEL = WORKLOAD.model
+REASONING_EFFORT = WORKLOAD.reasoning_effort
+CODEX_VERSION = WORKLOAD.codex_version
 AGENT_TIMEOUT_SECONDS = 30 * 60
 AGENT_OUTER_TIMEOUT_SECONDS = 31 * 60
 REMOTE_AGENT_TIMEOUT = "30m"
@@ -103,6 +144,84 @@ PUBLIC_SECRET_PATTERNS = (
 )
 HUMAN_REVIEW_CLAUSES = frozenset({"1", "2", "3", "4"})
 ISOLATED_COMMAND_COMPLETION_MARKER = "q1-l1-isolated-command-completed-v1"
+
+
+def configure_loop(context: LoopContext) -> None:
+    """Select one Q1 loop without changing the frozen workload identity."""
+
+    match = re.fullmatch(r"Q1/L([1-9][0-9]*)", context.loop_id)
+    root = context.root.resolve()
+    if match is None or root.parent != ROOT.parent:
+        raise ValueError("loop context must identify a direct Q1 loop directory")
+    if not root.name.startswith(f"l{match.group(1)}-"):
+        raise ValueError("loop ID and directory name disagree")
+    if not context.intervention or re.fullmatch(
+        r"[a-z0-9]+(?:_[a-z0-9]+)*", context.intervention
+    ) is None:
+        raise ValueError("loop intervention must be a lowercase identifier")
+    if root != ROOT and context.launcher is None:
+        raise ValueError("a derived loop requires its reviewed launcher")
+    launcher_paths: tuple[Path, ...] = ()
+    if context.launcher is not None:
+        launcher = context.launcher.resolve()
+        expected = root / "reproduction" / f"run_l{match.group(1)}.py"
+        if launcher != expected:
+            raise ValueError("loop launcher does not match the selected loop")
+        launcher_paths = (launcher,)
+    provenance = (
+        context.prior_loop_id,
+        context.prior_run_id,
+        context.prior_result_commit,
+    )
+    if any(value is None for value in provenance) != all(
+        value is None for value in provenance
+    ):
+        raise ValueError("prior-loop provenance must be complete or absent")
+    if context.prior_loop_id is not None:
+        if re.fullmatch(r"Q1/L[1-9][0-9]*", context.prior_loop_id) is None:
+            raise ValueError("prior loop ID is invalid")
+        if RUN_ID_PATTERN.fullmatch(cast(str, context.prior_run_id)) is None:
+            raise ValueError("prior run ID is invalid")
+        _validate_contract_commit(cast(str, context.prior_result_commit))
+
+    global ACTIVE_LOOP, LOOP_ROOT, LOOP_PATH, LOOP_AUTHORITY_PATHS
+    global EVIDENCE_ROOT, RESULT_PATH
+    ACTIVE_LOOP = LoopContext(
+        loop_id=context.loop_id,
+        root=root,
+        intervention=context.intervention,
+        launcher=launcher_paths[0] if launcher_paths else None,
+        prior_loop_id=context.prior_loop_id,
+        prior_run_id=context.prior_run_id,
+        prior_result_commit=context.prior_result_commit,
+    )
+    LOOP_ROOT = root
+    LOOP_PATH = root / "LOOP.md"
+    LOOP_AUTHORITY_PATHS = launcher_paths
+    EVIDENCE_ROOT = root / "evidence"
+    RESULT_PATH = root / "RESULT.md"
+
+
+def _run_context_record() -> dict[str, Any]:
+    record: dict[str, Any] = {
+        "loop": {
+            "id": ACTIVE_LOOP.loop_id,
+            "intervention": ACTIVE_LOOP.intervention,
+        },
+        "schema_version": 1,
+        "workload": {
+            "id": WORKLOAD.workload_id,
+            "resource_namespace": WORKLOAD.resource_namespace,
+            "source_loop": DEFAULT_LOOP.loop_id,
+        },
+    }
+    if ACTIVE_LOOP.prior_loop_id is not None:
+        record["prior_loop"] = {
+            "loop_id": ACTIVE_LOOP.prior_loop_id,
+            "result_commit": ACTIVE_LOOP.prior_result_commit,
+            "run_id": ACTIVE_LOOP.prior_run_id,
+        }
+    return record
 LIMA_CONFIG_FIELDS = frozenset(
     {
         "arch",
@@ -2067,7 +2186,7 @@ def _checkout_guard(
         "verify approved checkout branch",
     ).decode("utf-8").strip()
     if branch != "main":
-        raise RuntimeError("Q1/L1 must execute sequentially on main")
+        raise RuntimeError(f"{ACTIVE_LOOP.loop_id} must execute sequentially on main")
     head = checked_output(
         ["rev-parse", "HEAD"],
         "verify approved checkout commit",
@@ -2149,7 +2268,9 @@ def _acquire_execution_lock() -> int:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError as exc:
         os.close(descriptor)
-        raise RuntimeError("another Q1/L1 execution or finalization owns the process lock") from exc
+        raise RuntimeError(
+            f"another {WORKLOAD.workload_id} execution or finalization owns the process lock"
+        ) from exc
     return descriptor
 
 
@@ -2325,11 +2446,13 @@ def _assert_no_orphaned_run() -> None:
             evidence_metadata.st_mode
         ):
             raise RuntimeError(
-                "Q1/L1 evidence root is not a real directory; human recovery is required"
+                f"{ACTIVE_LOOP.loop_id} evidence root is not a real directory; "
+                "human recovery is required"
             )
         if any(EVIDENCE_ROOT.iterdir()):
             raise RuntimeError(
-                "unfinished or prior Q1/L1 evidence exists; human recovery is required"
+                f"unfinished or prior {ACTIVE_LOOP.loop_id} evidence exists; "
+                "human recovery is required"
             )
     records = _preflight_lima_records()
     candidate_instances = sorted(
@@ -2360,7 +2483,7 @@ def _assert_no_orphaned_run() -> None:
 def _preflight(expected_commit: str) -> str:
     _checkout_guard(expected_commit)
     if RESULT_PATH.exists():
-        raise RuntimeError("Q1/L1 already has RESULT.md")
+        raise RuntimeError(f"{ACTIVE_LOOP.loop_id} already has RESULT.md")
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY must be supplied out of band before execution")
@@ -2373,7 +2496,7 @@ def _copy_run_authorities(evidence: Path) -> None:
     destination.mkdir(parents=True)
     paths = (
         QUESTION_PATH,
-        ROOT / "LOOP.md",
+        LOOP_PATH,
         REPRODUCTION / "candidate-lima.yaml",
         REPRODUCTION / "candidate-apt-packages.txt",
         REPRODUCTION / "candidate-codex-config.toml",
@@ -2400,6 +2523,23 @@ def _copy_run_authorities(evidence: Path) -> None:
         destination / "Makefile",
         maximum_bytes=16 * 1024 * 1024,
     )
+    if LOOP_ROOT != ROOT:
+        workload_destination = destination / "workload"
+        workload_destination.mkdir()
+        _copy_bounded_into_evidence(
+            ROOT / "LOOP.md",
+            workload_destination / "LOOP.md",
+            maximum_bytes=16 * 1024 * 1024,
+        )
+    if LOOP_AUTHORITY_PATHS:
+        loop_destination = destination / "loop"
+        loop_destination.mkdir()
+        for path in LOOP_AUTHORITY_PATHS:
+            _copy_bounded_into_evidence(
+                path,
+                loop_destination / path.name,
+                maximum_bytes=16 * 1024 * 1024,
+            )
     for source_root, name in (
         (REPRODUCTION, "reproduction"),
         (ROOT / "evaluator", "evaluator"),
@@ -4362,11 +4502,24 @@ def _render_result(state: dict[str, Any]) -> str:
         "Inconclusive": "Inconclusive",
         "PendingHumanReview": "Pending human source review",
     }[status]
-    effect = (
-        "The run is not terminal until the human source-review gate is recorded."
-        if status == "PendingHumanReview"
-        else "This is the terminal disposition for the approved Q1/L1 run."
-    )
+    effect = {
+        "Accepted": (
+            "Q1 gains one configuration-specific cost-to-accepted-completion "
+            "observation. It does not establish a distribution or authorize a next loop."
+        ),
+        "Rejected": (
+            "Q1 gains a configuration-specific cost-to-rejection observation, not a "
+            "cost-to-accepted-completion observation. It does not authorize a next loop."
+        ),
+        "Inconclusive": (
+            "Q1 gains the recorded cost and failure evidence, but no valid "
+            "cost-to-accepted-completion observation. It does not authorize a next loop."
+        ),
+        "PendingHumanReview": (
+            "Q1 gains the non-human cost observation, but accepted-completion cost remains "
+            "pending explicit human source review."
+        ),
+    }[status]
     raw_summary = state.get("final_gate_summary")
     if isinstance(raw_summary, dict):
         gate_summary = {
@@ -4386,7 +4539,7 @@ def _render_result(state: dict[str, Any]) -> str:
     reason_literal = "    " + json.dumps(
         str(state.get("disposition_reason", "")), ensure_ascii=True
     )
-    return f"""# Q1/L1 result — contract reproduction
+    return f"""# {ACTIVE_LOOP.loop_id} result — contract reproduction
 
 ## Observed evidence
 
@@ -4394,6 +4547,7 @@ def _render_result(state: dict[str, Any]) -> str:
 - Executable contract commit: `{state['contract_commit']}`
 - Candidate attempts completed: {state.get('completed_attempts', 0)}
 - Evidence: [`evidence/{state['run_id']}`](evidence/{state['run_id']})
+- Separate cost and latency ledger: [`evidence/{state['run_id']}/accounting.json`](evidence/{state['run_id']}/accounting.json)
 
 Final non-human gates:
 
@@ -4417,7 +4571,7 @@ See `evidence/{state['run_id']}/unavailable.json`. Missing required evidence is 
 
 ## Possible next loops
 
-None authorized. A human may recommend one after reviewing this result.
+None authorized. The terminal evidence returns to human review for a broad next-step decision.
 
 ## Promotion candidate
 
@@ -4495,6 +4649,17 @@ def _required_evidence(evidence: Path, state: dict[str, Any]) -> list[Path]:
         "Makefile",
     )
     required.extend(evidence / "authorities" / name for name in authority_names)
+    if LOOP_ROOT != ROOT:
+        required.extend(
+            (
+                evidence / "context.json",
+                evidence / "authorities" / "workload" / "LOOP.md",
+            )
+        )
+        required.extend(
+            evidence / "authorities" / "loop" / path.name
+            for path in LOOP_AUTHORITY_PATHS
+        )
     required.extend(
         evidence / "authorities" / "public-contract" / path.relative_to(ROOT / "public" / "contract")
         for path in (ROOT / "public" / "contract").rglob("*")
@@ -4797,6 +4962,8 @@ def _perform_execution_work(
 ) -> None:
     authority_copy_started_wall = _utc_now()
     authority_copy_started_monotonic = time.monotonic()
+    if LOOP_ROOT != ROOT:
+        _write_json(evidence / "context.json", _run_context_record())
     _copy_run_authorities(evidence)
     recorder.internal(
         label="capture reviewed run authorities",
@@ -5055,6 +5222,7 @@ def _execute_locked(contract_commit: str, deadline: ExecutionDeadline) -> int:
         "contract_commit": contract_commit,
         "evaluated_attempts": [],
         "identified_attempts": [],
+        "loop_id": ACTIVE_LOOP.loop_id,
         "run_id": run_id,
         "run_started_at": run_started_at,
         "automated_phase_deadline_seconds": AUTOMATED_PHASE_TIMEOUT_SECONDS,
@@ -5066,6 +5234,7 @@ def _execute_locked(contract_commit: str, deadline: ExecutionDeadline) -> int:
         "transfer_attempts_started": [],
         "transferred_attempts": [],
         "typing_attempts": [],
+        "workload_id": WORKLOAD.workload_id,
     }
     context: dict[str, Any] = {
         "candidate_vm_observed_monotonic": None,
@@ -6371,6 +6540,7 @@ def plan() -> int:
                     "model": MODEL,
                     "reasoning_effort": REASONING_EFFORT,
                 },
+                "experiment": _run_context_record(),
                 "agent_budget": {
                     "initial": 1,
                     "remediation": 1,
@@ -6399,7 +6569,7 @@ def plan() -> int:
                 "human_gate": "after all non-human gates pass",
                 "sequence": [
                     "clean reviewed contract commit",
-                    "agent-owned Q1/L1 setup and zero scoped residue before run clocks or evidence",
+                    f"agent-owned {ACTIVE_LOOP.loop_id} setup and zero scoped residue before run clocks or evidence",
                     "start run clocks and evidence, then recheck zero scoped residue",
                     "exact q1-l1-evaluator fingerprint, dispatch, evaluator, and isolation validation",
                     "fresh candidate VM provisioning and boundary probe",
@@ -6441,7 +6611,12 @@ def plan() -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=(
+            f"Execute the approved {ACTIVE_LOOP.loop_id} workflow or finalize its "
+            "human review gate."
+        )
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("plan", help="print the approved sequence without changing state")
     execute_parser = subparsers.add_parser(
