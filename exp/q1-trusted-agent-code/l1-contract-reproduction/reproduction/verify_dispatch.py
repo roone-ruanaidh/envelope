@@ -8,6 +8,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shlex
 import signal
 import stat
@@ -25,6 +26,34 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 L2_ROOT = ROOT.parent / "l2-contract-reproduction"
 L2_RUNNER = L2_ROOT / "reproduction" / "run_l2.py"
+L3_ROOT = ROOT.parent / "l3-contract-reproduction"
+L3_RUNNER = L3_ROOT / "reproduction" / "run_l3.py"
+DERIVED_LOOPS = (
+    {
+        "id": "Q1/L2",
+        "intervention": "hermetic_dispatch_test_state",
+        "prior": {
+            "loop_id": "Q1/L1",
+            "result_commit": "c069bc0a19b410562b30b78885efd3618fb41ec9",
+            "run_id": "20260721T062629Z-b09fbc7b",
+        },
+        "root": L2_ROOT,
+        "runner": L2_RUNNER,
+        "qualification": None,
+    },
+    {
+        "id": "Q1/L3",
+        "intervention": "parent_bounded_stream_capture",
+        "prior": {
+            "loop_id": "Q1/L2",
+            "result_commit": "de0d74a7effaa065cdd400519af17cf0fc859e61",
+            "run_id": "20260721T071826Z-10ec801b",
+        },
+        "root": L3_ROOT,
+        "runner": L3_RUNNER,
+        "qualification": L3_ROOT / "build" / "candidate-creation-qualification",
+    },
+)
 sys.path.insert(0, str(ROOT / "reproduction"))
 sys.path.insert(0, str(ROOT))
 
@@ -998,109 +1027,357 @@ class ContractMechanicsTests(unittest.TestCase):
             any("human attestation" in step for step in plan["sequence"])
         )
 
-    def test_l2_launcher_selects_only_loop_owned_state(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            completed = subprocess.run(
-                [sys.executable, "-B", "-I", str(L2_RUNNER), "plan"],
-                cwd=temporary,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=False,
-            )
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        plan = json.loads(completed.stdout)
-        self.assertEqual(plan["experiment"]["loop"], {
-            "id": "Q1/L2",
-            "intervention": "hermetic_dispatch_test_state",
-        })
-        self.assertEqual(
-            plan["experiment"]["workload"],
-            {
-                "id": "q1-lease-service-v1",
-                "resource_namespace": "q1-l1",
-                "source_loop": "Q1/L1",
-            },
-        )
-        self.assertEqual(plan["evaluator"]["instance"], "q1-l1-evaluator")
-        self.assertIn("Q1/L2", plan["sequence"][1])
+    def test_derived_launchers_select_only_loop_owned_state(self) -> None:
+        for case in DERIVED_LOOPS:
+            with self.subTest(loop=case["id"]), tempfile.TemporaryDirectory() as temporary:
+                completed = subprocess.run(
+                    [sys.executable, "-B", "-I", str(case["runner"]), "plan"],
+                    cwd=temporary,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                plan = json.loads(completed.stdout)
+                self.assertEqual(
+                    plan["experiment"]["loop"],
+                    {"id": case["id"], "intervention": case["intervention"]},
+                )
+                self.assertEqual(plan["experiment"]["prior_loop"], case["prior"])
+                self.assertEqual(
+                    plan["experiment"]["workload"],
+                    {
+                        "id": "q1-lease-service-v1",
+                        "resource_namespace": "q1-l1",
+                        "source_loop": "Q1/L1",
+                    },
+                )
+                self.assertEqual(plan["evaluator"]["instance"], "q1-l1-evaluator")
+                self.assertTrue(any(case["id"] in step for step in plan["sequence"]))
+                if case["qualification"] is not None:
+                    self.assertIn("qualification", plan["sequence"][1])
 
-    def test_l2_context_capture_and_result_are_loop_scoped(self) -> None:
-        context = run_l1.LoopContext(
-            loop_id="Q1/L2",
-            root=L2_ROOT,
-            intervention="hermetic_dispatch_test_state",
-            launcher=L2_RUNNER,
-            prior_loop_id="Q1/L1",
-            prior_run_id="20260721T062629Z-b09fbc7b",
-            prior_result_commit="c069bc0a19b410562b30b78885efd3618fb41ec9",
-        )
-        self.addCleanup(run_l1.configure_loop, run_l1.DEFAULT_LOOP)
-        run_l1.configure_loop(context)
-        self.assertEqual(run_l1.ROOT, ROOT)
-        self.assertEqual(run_l1.REPRODUCTION, ROOT / "reproduction")
-        self.assertEqual(run_l1.EVIDENCE_ROOT, L2_ROOT / "evidence")
-        self.assertEqual(run_l1.RESULT_PATH, L2_ROOT / "RESULT.md")
-        self.assertEqual(run_l1.EVALUATOR_INSTANCE, "q1-l1-evaluator")
-        rendered = run_l1._render_result(
-            {
-                "completed_attempts": 0,
-                "contract_commit": "a" * 40,
-                "disposition_reason": "test",
-                "run_id": "20260101T000000Z-deadbeef",
-                "status": "Inconclusive",
-            }
-        )
-        self.assertTrue(rendered.startswith("# Q1/L2 result"))
-        with tempfile.TemporaryDirectory() as temporary:
-            evidence_root = Path(temporary) / "evidence"
-            evidence = evidence_root / "20260101T000000Z-deadbeef"
-            evidence.mkdir(parents=True)
-            with patch.object(run_l1, "EVIDENCE_ROOT", evidence_root):
-                run_l1._copy_run_authorities(evidence)
-            required = {
-                path.relative_to(evidence).as_posix()
-                for path in run_l1._required_evidence(
-                    evidence,
-                    {"agent_attempts_invoked": 0},
+    def test_derived_context_capture_and_result_are_loop_scoped(self) -> None:
+        for case in DERIVED_LOOPS:
+            with self.subTest(loop=case["id"]):
+                context = run_l1.LoopContext(
+                    loop_id=case["id"],
+                    root=case["root"],
+                    intervention=case["intervention"],
+                    launcher=case["runner"],
+                    prior_loop_id=case["prior"]["loop_id"],
+                    prior_run_id=case["prior"]["run_id"],
+                    prior_result_commit=case["prior"]["result_commit"],
+                    candidate_qualification_root=case["qualification"],
                 )
-            }
-            self.assertTrue(
-                {
-                    "context.json",
-                    "authorities/loop/run_l2.py",
-                    "authorities/workload/LOOP.md",
-                }.issubset(required)
-            )
-            self.assertEqual(
-                (evidence / "authorities" / "LOOP.md").read_bytes(),
-                (L2_ROOT / "LOOP.md").read_bytes(),
-            )
-            self.assertEqual(
-                (evidence / "authorities" / "workload" / "LOOP.md").read_bytes(),
-                (ROOT / "LOOP.md").read_bytes(),
-            )
-            unsafe = {
-                path.relative_to(evidence).as_posix(): sorted(
-                    run_l1._public_safety_labels(
-                        path.read_bytes(),
-                        check_host_paths=True,
+                run_l1.configure_loop(context)
+                try:
+                    self.assertEqual(run_l1.ROOT, ROOT)
+                    self.assertEqual(run_l1.REPRODUCTION, ROOT / "reproduction")
+                    self.assertEqual(run_l1.LOOP_PATH, case["root"] / "LOOP.md")
+                    self.assertEqual(run_l1.EVIDENCE_ROOT, case["root"] / "evidence")
+                    self.assertEqual(run_l1.RESULT_PATH, case["root"] / "RESULT.md")
+                    self.assertEqual(run_l1.EVALUATOR_INSTANCE, "q1-l1-evaluator")
+                    expected_context = {
+                        "loop": {
+                            "id": case["id"],
+                            "intervention": case["intervention"],
+                        },
+                        "prior_loop": case["prior"],
+                        "schema_version": 1,
+                        "workload": {
+                            "id": "q1-lease-service-v1",
+                            "resource_namespace": "q1-l1",
+                            "source_loop": "Q1/L1",
+                        },
+                    }
+                    if case["qualification"] is not None:
+                        expected_context["setup"] = {
+                            "candidate_creation_qualification": {
+                                "included_in_evidence": True,
+                                "measured_as_task_cost": False,
+                            }
+                        }
+                    self.assertEqual(run_l1._run_context_record(), expected_context)
+                    rendered = run_l1._render_result(
+                        {
+                            "completed_attempts": 0,
+                            "contract_commit": "a" * 40,
+                            "disposition_reason": "test",
+                            "run_id": "20260101T000000Z-deadbeef",
+                            "status": "Inconclusive",
+                        }
                     )
+                    self.assertTrue(rendered.startswith(f"# {case['id']} result"))
+                    with tempfile.TemporaryDirectory() as temporary:
+                        evidence_root = Path(temporary) / "evidence"
+                        evidence = evidence_root / "20260101T000000Z-deadbeef"
+                        evidence.mkdir(parents=True)
+                        qualification = None
+                        if case["qualification"] is not None:
+                            qualification = Path(temporary) / "qualification"
+                            (qualification / "logs").mkdir(parents=True)
+                            (qualification / "commands.jsonl").write_text(
+                                "{}\n", encoding="utf-8"
+                            )
+                            (qualification / "receipt.json").write_text(
+                                "{}\n", encoding="utf-8"
+                            )
+                            (qualification / "logs" / "probe.stdout").write_text(
+                                "ok\n", encoding="utf-8"
+                            )
+                        with (
+                            patch.object(run_l1, "EVIDENCE_ROOT", evidence_root),
+                            patch.object(
+                                run_l1,
+                                "LOOP_CANDIDATE_QUALIFICATION_ROOT",
+                                qualification,
+                            ),
+                        ):
+                            run_l1._copy_run_authorities(evidence)
+                            required = {
+                                path.relative_to(evidence).as_posix()
+                                for path in run_l1._required_evidence(
+                                    evidence,
+                                    {"agent_attempts_invoked": 0},
+                                )
+                            }
+                        launcher_name = Path(case["runner"]).name
+                        self.assertTrue(
+                            {
+                                "context.json",
+                                f"authorities/loop/{launcher_name}",
+                                "authorities/workload/LOOP.md",
+                            }.issubset(required)
+                        )
+                        if qualification is not None:
+                            self.assertTrue(
+                                {
+                                    "setup/candidate-creation-qualification/commands.jsonl",
+                                    "setup/candidate-creation-qualification/receipt.json",
+                                    "setup/candidate-creation-qualification/logs/probe.stdout",
+                                }.issubset(required)
+                            )
+                        self.assertEqual(
+                            (evidence / "authorities" / "LOOP.md").read_bytes(),
+                            (case["root"] / "LOOP.md").read_bytes(),
+                        )
+                        self.assertEqual(
+                            (
+                                evidence / "authorities" / "workload" / "LOOP.md"
+                            ).read_bytes(),
+                            (ROOT / "LOOP.md").read_bytes(),
+                        )
+                        self.assertEqual(
+                            {
+                                path.name
+                                for path in (evidence / "authorities" / "loop").iterdir()
+                            },
+                            {launcher_name},
+                        )
+                        unsafe = {
+                            path.relative_to(evidence).as_posix(): sorted(
+                                run_l1._public_safety_labels(
+                                    path.read_bytes(),
+                                    check_host_paths=True,
+                                )
+                            )
+                            for path in evidence.rglob("*")
+                            if path.is_file()
+                            and run_l1._public_safety_labels(
+                                path.read_bytes(),
+                                check_host_paths=True,
+                            )
+                        }
+                        self.assertEqual(unsafe, {})
+                    encoded = json.dumps(expected_context).encode()
+                    self.assertEqual(
+                        run_l1._public_safety_labels(encoded, check_host_paths=True),
+                        set(),
+                    )
+                finally:
+                    run_l1.configure_loop(run_l1.DEFAULT_LOOP)
+
+    def test_candidate_creation_qualification_receipt_is_bound_to_its_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            loop_root = Path(temporary) / "l3-contract-reproduction"
+            qualification_root = (
+                loop_root / "build" / "candidate-creation-qualification"
+            )
+            logs = qualification_root / "logs"
+            logs.mkdir(parents=True)
+            instance = "q1-l1-candidate-20260101t000000z-deadbeef"
+            candidate_yaml = (
+                f"{run_l1.REDACTED_HOST_REPOSITORY}/"
+                + (run_l1.REPRODUCTION / "candidate-lima.yaml")
+                .relative_to(run_l1.REPOSITORY_ROOT)
+                .as_posix()
+            )
+            specifications = (
+                (
+                    "qualify candidate disk creation",
+                    [
+                        "limactl",
+                        "create",
+                        "--name",
+                        instance,
+                        "--tty=false",
+                        candidate_yaml,
+                    ],
+                    "",
+                ),
+                (
+                    "verify qualified candidate disk",
+                    ["limactl", "list", "--json"],
+                    json.dumps({"name": "q1-l1-evaluator", "status": "Running"})
+                    + "\n"
+                    + json.dumps({"name": instance, "status": "Stopped"})
+                    + "\n",
+                ),
+                (
+                    "inspect candidate VM before teardown",
+                    ["limactl", "list", "--json"],
+                    json.dumps({"name": "q1-l1-evaluator"})
+                    + "\n"
+                    + json.dumps({"name": instance})
+                    + "\n",
+                ),
+                (
+                    "delete candidate VM",
+                    ["limactl", "delete", "--force", instance],
+                    "",
+                ),
+                (
+                    "verify candidate VM teardown",
+                    ["limactl", "list", "--json"],
+                    json.dumps({"name": "q1-l1-evaluator"}) + "\n",
+                ),
+            )
+            records = []
+            for sequence, (label, argv, stdout) in enumerate(specifications, start=1):
+                safe_label = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+                stdout_path = f"logs/{sequence:03d}-{safe_label}.stdout"
+                stderr_path = f"logs/{sequence:03d}-{safe_label}.stderr"
+                (qualification_root / stdout_path).write_text(stdout, encoding="utf-8")
+                (qualification_root / stderr_path).write_text("", encoding="utf-8")
+                records.append(
+                    {
+                        "argv": argv,
+                        "category": "machine",
+                        "duration_seconds": float(sequence),
+                        "finished_at": "2026-01-01T00:00:01+00:00",
+                        "kind": "command",
+                        "label": label,
+                        "limit_breach": None,
+                        "resources": ["trusted_machine"],
+                        "return_code": 0,
+                        "sequence": sequence,
+                        "started_at": "2026-01-01T00:00:00+00:00",
+                        "stderr_path": stderr_path,
+                        "stdout_path": stdout_path,
+                        "timed_out": False,
+                    }
                 )
-                for path in evidence.rglob("*")
-                if path.is_file()
-                and run_l1._public_safety_labels(
-                    path.read_bytes(),
-                    check_host_paths=True,
-                )
+            commands = qualification_root / "commands.jsonl"
+            commands.write_text(
+                "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+                encoding="utf-8",
+            )
+            receipt = {
+                "commands_sha256": run_l1._sha256(commands),
+                "contract_commit": "a" * 40,
+                "create": {
+                    "duration_seconds": 1.0,
+                    "limit_breach": None,
+                    "return_code": 0,
+                    "timed_out": False,
+                },
+                "created_status": "Stopped",
+                "duration_seconds": 2.0,
+                "failure_categories": [],
+                "finished_at": "2026-01-01T00:00:02+00:00",
+                "instance": instance,
+                "loop_id": "Q1/L3",
+                "postconditions": {
+                    "candidate_absent_and_evaluator_residue_zero": True,
+                    "created_without_starting": True,
+                    "reviewed_source_unchanged": True,
+                },
+                "redaction_count": 0,
+                "schema_version": 1,
+                "started_at": "2026-01-01T00:00:00+00:00",
+                "status": "Passed",
             }
-            self.assertEqual(unsafe, {})
-        encoded = json.dumps(run_l1._run_context_record()).encode()
-        self.assertEqual(
-            run_l1._public_safety_labels(encoded, check_host_paths=True),
-            set(),
-        )
+            run_l1._write_json(qualification_root / "receipt.json", receipt)
+            with (
+                patch.object(run_l1, "LOOP_ROOT", loop_root),
+                patch.object(
+                    run_l1,
+                    "ACTIVE_LOOP",
+                    run_l1.LoopContext(
+                        loop_id="Q1/L3",
+                        root=loop_root,
+                        intervention="parent_bounded_stream_capture",
+                    ),
+                ),
+            ):
+                run_l1.require_candidate_creation_qualification(
+                    qualification_root,
+                    "a" * 40,
+                )
+                with self.assertRaisesRegex(RuntimeError, "did not pass this contract"):
+                    run_l1.require_candidate_creation_qualification(
+                        qualification_root,
+                        "b" * 40,
+                    )
+                commands.write_text("changed\n", encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, "command record changed"):
+                    run_l1.require_candidate_creation_qualification(
+                        qualification_root,
+                        "a" * 40,
+                    )
+
+    def test_measured_preflight_revalidates_candidate_qualification(self) -> None:
+        events: list[str] = []
+
+        def require(_root: Path, _commit: str) -> None:
+            events.append("qualification")
+            raise RuntimeError("qualification rejected")
+
+        with (
+            patch.object(
+                run_l1,
+                "LOOP_CANDIDATE_QUALIFICATION_ROOT",
+                L3_ROOT / "build" / "candidate-creation-qualification",
+            ),
+            patch.object(
+                run_l1,
+                "_checkout_guard",
+                side_effect=lambda _commit: events.append("checkout"),
+            ),
+            patch.object(
+                run_l1,
+                "require_candidate_creation_qualification",
+                side_effect=require,
+            ),
+            self.assertRaisesRegex(RuntimeError, "qualification rejected"),
+        ):
+            run_l1._preflight("a" * 40)
+        self.assertEqual(events, ["checkout", "qualification"])
+
+    def test_missing_candidate_qualification_receipt_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            loop_root = Path(temporary) / "l3-contract-reproduction"
+            with (
+                patch.object(run_l1, "LOOP_ROOT", loop_root),
+                self.assertRaisesRegex(RuntimeError, "receipt is missing"),
+            ):
+                run_l1.require_candidate_creation_qualification(
+                    loop_root / "build" / "candidate-creation-qualification",
+                    "a" * 40,
+                )
 
     def test_loop_context_rejects_an_external_root_without_mutation(self) -> None:
         before = run_l1.ACTIVE_LOOP
@@ -1140,6 +1417,237 @@ class ContractMechanicsTests(unittest.TestCase):
             self.assertLessEqual((evidence / result.stdout_path).stat().st_size, 16)
             with self.assertRaises(run_l1.Inconclusive):
                 run_l1._require_success(result, "probe")
+
+    def test_stream_limit_does_not_limit_descendant_files(self) -> None:
+        descendant = (
+            "import os,sys;"
+            "fd=os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);"
+            "os.ftruncate(fd,64*1024*1024);os.close(fd)"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            recorded_file = root / "recorded-sparse-disk"
+            preflight_file = root / "preflight-sparse-disk"
+            parent = (
+                "import subprocess,sys;"
+                f"subprocess.run([sys.executable,'-c',{descendant!r},sys.argv[1]],check=True);"
+                "print('ok')"
+            )
+            evidence = root / "evidence"
+            evidence.mkdir()
+            result = run_l1.Recorder(evidence).run(
+                [sys.executable, "-c", parent, str(recorded_file)],
+                label="recorded descendant sparse-file probe",
+            )
+            self.assertEqual(result.return_code, 0)
+            self.assertIsNone(result.limit_breach)
+            self.assertEqual(recorded_file.stat().st_size, 64 * 1024 * 1024)
+            return_code, stdout, stderr, timed_out = run_l1._bounded_preflight_command(
+                [sys.executable, "-c", parent, str(preflight_file)]
+            )
+            self.assertEqual(return_code, 0)
+            self.assertEqual(stdout, b"ok\n")
+            self.assertEqual(stderr, b"")
+            self.assertFalse(timed_out)
+            self.assertEqual(preflight_file.stat().st_size, 64 * 1024 * 1024)
+
+    def test_exact_stdout_and_stderr_limits_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            with patch.object(run_l1, "COMMAND_STREAM_MAX_BYTES", 16):
+                result = run_l1.Recorder(evidence).run(
+                    [
+                        sys.executable,
+                        "-c",
+                        "import os;os.write(1,b'o'*16);os.write(2,b'e'*16)",
+                    ],
+                    label="exact stream boundary probe",
+                )
+            self.assertEqual(result.return_code, 0)
+            self.assertIsNone(result.limit_breach)
+            self.assertEqual((evidence / result.stdout_path).read_bytes(), b"o" * 16)
+            self.assertEqual((evidence / result.stderr_path).read_bytes(), b"e" * 16)
+
+    def test_stdout_and_stderr_overflow_are_independently_bounded_online(self) -> None:
+        for descriptor, expected, other in (
+            (1, "stdout_size", 2),
+            (2, "stderr_size", 1),
+        ):
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as temporary:
+                evidence = Path(temporary) / "evidence"
+                evidence.mkdir()
+                code = (
+                    f"import os,time;os.write({other},b'ok');"
+                    f"os.write({descriptor},b'x'*17);time.sleep(5)"
+                )
+                started = time.monotonic()
+                with patch.object(run_l1, "COMMAND_STREAM_MAX_BYTES", 16):
+                    result = run_l1.Recorder(evidence).run(
+                        [sys.executable, "-c", code],
+                        label=f"{expected} online probe",
+                        timeout_seconds=2,
+                    )
+                self.assertLess(time.monotonic() - started, 1.5)
+                self.assertFalse(result.timed_out)
+                self.assertEqual(result.limit_breach, expected)
+                target = result.stdout_path if descriptor == 1 else result.stderr_path
+                self.assertEqual((evidence / target).stat().st_size, 16)
+
+    def test_stream_overflow_kills_the_descendant_process_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            marker = root / "descendant-survived"
+            descendant = (
+                "import pathlib,sys,time;time.sleep(0.5);"
+                "pathlib.Path(sys.argv[1]).write_text('alive')"
+            )
+            parent = (
+                "import os,subprocess,sys,time;"
+                f"subprocess.Popen([sys.executable,'-c',{descendant!r},sys.argv[1]]);"
+                "os.write(1,b'x'*17);time.sleep(5)"
+            )
+            with patch.object(run_l1, "COMMAND_STREAM_MAX_BYTES", 16):
+                result = run_l1.Recorder(evidence).run(
+                    [sys.executable, "-c", parent, str(marker)],
+                    label="descendant stream-overflow cleanup probe",
+                    timeout_seconds=2,
+                )
+            self.assertEqual(result.limit_breach, "stdout_size")
+            time.sleep(0.75)
+            self.assertFalse(marker.exists())
+
+    def test_work_alarm_during_active_capture_kills_the_descendant_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            marker = Path(temporary) / "descendant-survived"
+            descendant = (
+                "import pathlib,sys,time;time.sleep(0.25);"
+                "pathlib.Path(sys.argv[1]).write_text('alive')"
+            )
+            parent = (
+                "import subprocess,sys,time;"
+                f"subprocess.Popen([sys.executable,'-c',{descendant!r},sys.argv[1]]);"
+                "time.sleep(5)"
+            )
+            previous_handler = signal.getsignal(signal.SIGALRM)
+            previous_timer = signal.setitimer(signal.ITIMER_REAL, 0)
+
+            def work_alarm(_signum: int, _frame: object) -> None:
+                raise run_l1.ExecuteWorkDeadline()
+
+            signal.signal(signal.SIGALRM, work_alarm)
+            signal.setitimer(signal.ITIMER_REAL, 0.05)
+            try:
+                with self.assertRaises(run_l1.ExecuteWorkDeadline):
+                    run_l1._run_bounded_process(
+                        [sys.executable, "-c", parent, str(marker)],
+                        environment=run_l1._safe_environment(),
+                        input_bytes=None,
+                        timeout_seconds=2,
+                    )
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, previous_handler)
+                if previous_timer[0] > 0:
+                    signal.setitimer(
+                        signal.ITIMER_REAL,
+                        previous_timer[0],
+                        previous_timer[1],
+                    )
+            time.sleep(0.4)
+            self.assertFalse(marker.exists())
+
+    def test_stream_overflow_never_reaches_observer_or_transform(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            observer = Mock()
+            transform = Mock(return_value="transformed")
+            with patch.object(run_l1, "COMMAND_STREAM_MAX_BYTES", 16):
+                result = run_l1.Recorder(evidence).run(
+                    [sys.executable, "-c", "import os;os.write(2,b'x'*17)"],
+                    label="consumer isolation probe",
+                    stdout_observer=observer,
+                    stdout_transform=transform,
+                )
+            self.assertEqual(result.limit_breach, "stderr_size")
+            observer.assert_not_called()
+            transform.assert_not_called()
+
+    def test_bounded_capture_multiplexes_input_stdout_and_stderr(self) -> None:
+        code = (
+            "import os,threading;"
+            "a=threading.Thread(target=os.write,args=(1,b'o'*(128*1024)));"
+            "b=threading.Thread(target=os.write,args=(2,b'e'*(128*1024)));"
+            "a.start();b.start();a.join();b.join();"
+            "data=b'';"
+            "\nwhile len(data)<262144:"
+            "\n chunk=os.read(0,262144-len(data))"
+            "\n if not chunk: break"
+            "\n data+=chunk"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            result = run_l1.Recorder(evidence).run(
+                [sys.executable, "-c", code],
+                label="multiplexed pipe pressure probe",
+                input_text="i" * (256 * 1024),
+                timeout_seconds=5,
+            )
+            self.assertEqual(result.return_code, 0)
+            self.assertIsNone(result.limit_breach)
+            self.assertEqual((evidence / result.stdout_path).stat().st_size, 128 * 1024)
+            self.assertEqual((evidence / result.stderr_path).stat().st_size, 128 * 1024)
+
+    def test_preflight_stream_overflow_is_bounded_online(self) -> None:
+        for descriptor, expected in ((1, "stdout_size"), (2, "stderr_size")):
+            with self.subTest(expected=expected), patch.object(
+                run_l1, "COMMAND_STREAM_MAX_BYTES", 16
+            ), patch.object(run_l1, "DEFAULT_COMMAND_TIMEOUT_SECONDS", 2):
+                started = time.monotonic()
+                with self.assertRaisesRegex(RuntimeError, expected):
+                    run_l1._bounded_preflight_command(
+                        [
+                            sys.executable,
+                            "-c",
+                            f"import os,time;os.write({descriptor},b'x'*17);time.sleep(5)",
+                        ]
+                    )
+                self.assertLess(time.monotonic() - started, 1.5)
+
+    def test_recorder_timeout_remains_a_bounded_deadline_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            result = run_l1.Recorder(evidence).run(
+                [sys.executable, "-c", "import time;time.sleep(5)"],
+                label="bounded timeout probe",
+                timeout_seconds=0.05,
+            )
+            self.assertTrue(result.timed_out)
+            self.assertEqual(result.return_code, 124)
+            self.assertEqual(result.limit_breach, "command_deadline")
+
+    def test_timeout_metadata_does_not_turn_exact_stderr_into_overflow(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            with patch.object(run_l1, "COMMAND_STREAM_MAX_BYTES", 16):
+                result = run_l1.Recorder(evidence).run(
+                    [
+                        sys.executable,
+                        "-c",
+                        "import os,time;os.write(2,b'e'*16);time.sleep(5)",
+                    ],
+                    label="exact stderr then timeout probe",
+                    timeout_seconds=0.05,
+                )
+            self.assertTrue(result.timed_out)
+            self.assertEqual(result.limit_breach, "command_deadline")
+            self.assertEqual((evidence / result.stderr_path).read_bytes(), b"e" * 16)
 
     def test_execution_work_alarm_rearms_the_absolute_hard_deadline(self) -> None:
         deadline = run_l1.ExecutionDeadline()

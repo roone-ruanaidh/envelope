@@ -10,7 +10,7 @@ import math
 import os
 import pwd
 import re
-import resource
+import selectors
 import signal
 import shutil
 import stat
@@ -45,6 +45,7 @@ class LoopContext:
     prior_loop_id: str | None = None
     prior_run_id: str | None = None
     prior_result_commit: str | None = None
+    candidate_qualification_root: Path | None = None
 
 
 WORKLOAD = WorkloadContext(
@@ -72,6 +73,7 @@ ACTIVE_LOOP = DEFAULT_LOOP
 LOOP_ROOT = ACTIVE_LOOP.root
 LOOP_PATH = LOOP_ROOT / "LOOP.md"
 LOOP_AUTHORITY_PATHS: tuple[Path, ...] = ()
+LOOP_CANDIDATE_QUALIFICATION_ROOT: Path | None = None
 EVIDENCE_ROOT = LOOP_ROOT / "evidence"
 RESULT_PATH = LOOP_ROOT / "RESULT.md"
 HOST_HOME = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
@@ -184,7 +186,17 @@ def configure_loop(context: LoopContext) -> None:
             raise ValueError("prior run ID is invalid")
         _validate_contract_commit(cast(str, context.prior_result_commit))
 
+    qualification_root: Path | None = None
+    if context.candidate_qualification_root is not None:
+        qualification_root = context.candidate_qualification_root.absolute()
+        expected_qualification_root = (
+            root / "build" / "candidate-creation-qualification"
+        ).absolute()
+        if qualification_root != expected_qualification_root:
+            raise ValueError("candidate qualification root is not owned by the loop")
+
     global ACTIVE_LOOP, LOOP_ROOT, LOOP_PATH, LOOP_AUTHORITY_PATHS
+    global LOOP_CANDIDATE_QUALIFICATION_ROOT
     global EVIDENCE_ROOT, RESULT_PATH
     ACTIVE_LOOP = LoopContext(
         loop_id=context.loop_id,
@@ -194,10 +206,12 @@ def configure_loop(context: LoopContext) -> None:
         prior_loop_id=context.prior_loop_id,
         prior_run_id=context.prior_run_id,
         prior_result_commit=context.prior_result_commit,
+        candidate_qualification_root=qualification_root,
     )
     LOOP_ROOT = root
     LOOP_PATH = root / "LOOP.md"
     LOOP_AUTHORITY_PATHS = launcher_paths
+    LOOP_CANDIDATE_QUALIFICATION_ROOT = qualification_root
     EVIDENCE_ROOT = root / "evidence"
     RESULT_PATH = root / "RESULT.md"
 
@@ -220,6 +234,13 @@ def _run_context_record() -> dict[str, Any]:
             "loop_id": ACTIVE_LOOP.prior_loop_id,
             "result_commit": ACTIVE_LOOP.prior_result_commit,
             "run_id": ACTIVE_LOOP.prior_run_id,
+        }
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        record["setup"] = {
+            "candidate_creation_qualification": {
+                "included_in_evidence": True,
+                "measured_as_task_cost": False,
+            }
         }
     return record
 LIMA_CONFIG_FIELDS = frozenset(
@@ -681,6 +702,15 @@ class CommandResult:
     resources: list[str]
     stdout_path: str
     stderr_path: str
+
+
+@dataclass(frozen=True)
+class CapturedProcess:
+    return_code: int
+    stdout: bytes
+    stderr: bytes
+    timed_out: bool
+    breaches: tuple[str, ...]
 
 
 def _utc_now() -> datetime:
@@ -1188,10 +1218,8 @@ def _safe_environment() -> dict[str, str]:
     }
 
 
-def _set_child_output_limit() -> None:
+def _prepare_child_process() -> None:
     signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGALRM})
-    maximum = COMMAND_STREAM_MAX_BYTES + 1
-    resource.setrlimit(resource.RLIMIT_FSIZE, (maximum, maximum))
 
 
 def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
@@ -1266,6 +1294,185 @@ def _kill_and_reap_process_group(
         raise RuntimeError("killed command process could not be reaped") from exc
     if deferred_alarm is not None:
         raise deferred_alarm
+
+
+def _communicate_bounded(
+    process: subprocess.Popen[bytes],
+    *,
+    input_bytes: bytes | None,
+    timeout_seconds: float,
+) -> CapturedProcess:
+    """Drain process pipes without imposing stream limits on child-created files."""
+
+    if process.stdout is None or process.stderr is None:
+        raise RuntimeError("bounded process capture requires stdout and stderr pipes")
+    if input_bytes is not None and process.stdin is None:
+        raise RuntimeError("bounded process input requires a stdin pipe")
+
+    selector = selectors.DefaultSelector()
+    stdout = bytearray()
+    stderr = bytearray()
+    buffers = {"stdout": stdout, "stderr": stderr}
+    deadline = time.monotonic() + timeout_seconds
+    input_offset = 0
+    timed_out = False
+    breaches: list[str] = []
+
+    def close_stream(stream: Any) -> None:
+        try:
+            selector.unregister(stream)
+        except (KeyError, ValueError):
+            pass
+        try:
+            stream.close()
+        except OSError:
+            pass
+        if process.stdin is stream:
+            process.stdin = None
+
+    def close_all_streams() -> None:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                close_stream(stream)
+
+    try:
+        for stream, name in ((process.stdout, "stdout"), (process.stderr, "stderr")):
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, name)
+        if process.stdin is not None:
+            if input_bytes:
+                os.set_blocking(process.stdin.fileno(), False)
+                selector.register(process.stdin, selectors.EVENT_WRITE, "stdin")
+            else:
+                close_stream(process.stdin)
+
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
+                break
+            events = selector.select(remaining)
+            if not events:
+                continue
+            for key, _mask in events:
+                stream = key.fileobj
+                if key.data == "stdin":
+                    try:
+                        written = os.write(
+                            key.fd,
+                            cast(bytes, input_bytes)[input_offset : input_offset + 64 * 1024],
+                        )
+                    except BrokenPipeError:
+                        close_stream(stream)
+                        continue
+                    except BlockingIOError:
+                        continue
+                    if written == 0:
+                        raise RuntimeError("bounded process input made no progress")
+                    input_offset += written
+                    if input_offset >= len(cast(bytes, input_bytes)):
+                        close_stream(stream)
+                    continue
+
+                try:
+                    chunk = os.read(key.fd, 64 * 1024)
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    close_stream(stream)
+                    continue
+                buffer = buffers[cast(str, key.data)]
+                available = COMMAND_STREAM_MAX_BYTES - len(buffer)
+                if len(chunk) > available:
+                    if available > 0:
+                        buffer.extend(chunk[:available])
+                    breaches.append(f"{key.data}_size")
+                    break
+                buffer.extend(chunk)
+            if breaches:
+                break
+
+        if breaches or timed_out:
+            _kill_and_reap_process_group(process)
+        else:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
+                _kill_and_reap_process_group(process)
+            else:
+                try:
+                    process.wait(timeout=remaining)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    _kill_and_reap_process_group(process)
+    finally:
+        close_all_streams()
+        selector.close()
+
+    if process.returncode is None:
+        raise RuntimeError("bounded process was not reaped")
+    return CapturedProcess(
+        return_code=process.returncode,
+        stdout=bytes(stdout),
+        stderr=bytes(stderr),
+        timed_out=timed_out,
+        breaches=tuple(breaches),
+    )
+
+
+def _run_bounded_process(
+    command: Sequence[str],
+    *,
+    environment: dict[str, str],
+    input_bytes: bytes | None,
+    timeout_seconds: float,
+) -> CapturedProcess:
+    process: subprocess.Popen[bytes] | None = None
+    try:
+        previous_mask = signal.pthread_sigmask(
+            signal.SIG_BLOCK,
+            {signal.SIGALRM},
+        )
+        try:
+            process = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=environment,
+                start_new_session=True,
+                preexec_fn=_prepare_child_process,
+            )
+        finally:
+            signal.pthread_sigmask(
+                signal.SIG_SETMASK,
+                previous_mask,
+            )
+    except BaseException as exc:
+        if process is not None:
+            _kill_and_reap_process_group(
+                process,
+                hard_cutoff_active=isinstance(
+                    exc,
+                    (ExecuteHardDeadline, FinalizationHardDeadline),
+                ),
+            )
+        raise
+    try:
+        return _communicate_bounded(
+            process,
+            input_bytes=input_bytes,
+            timeout_seconds=timeout_seconds,
+        )
+    except BaseException as exc:
+        _kill_and_reap_process_group(
+            process,
+            hard_cutoff_active=isinstance(
+                exc,
+                (ExecuteHardDeadline, FinalizationHardDeadline),
+            ),
+        )
+        raise
 
 
 def _truncate_utf8(value: str, maximum: int) -> str:
@@ -1446,81 +1653,25 @@ class Recorder:
                             effective_timeout = available
                             clipped_by_automated_deadline = True
                     if not breaches:
-                        with tempfile.TemporaryDirectory(prefix="q1-l1-command-") as temporary:
-                            raw_stdout_path = Path(temporary) / "stdout"
-                            raw_stderr_path = Path(temporary) / "stderr"
-                            with raw_stdout_path.open("wb") as raw_stdout, raw_stderr_path.open(
-                                "wb"
-                            ) as raw_stderr:
-                                process: subprocess.Popen[bytes] | None = None
-                                try:
-                                    previous_mask = signal.pthread_sigmask(
-                                        signal.SIG_BLOCK,
-                                        {signal.SIGALRM},
-                                    )
-                                    try:
-                                        process = subprocess.Popen(
-                                            command,
-                                            stdin=(
-                                                subprocess.PIPE
-                                                if input_bytes is not None
-                                                else subprocess.DEVNULL
-                                            ),
-                                            stdout=raw_stdout,
-                                            stderr=raw_stderr,
-                                            env=self.environment,
-                                            start_new_session=True,
-                                            preexec_fn=_set_child_output_limit,
-                                        )
-                                    finally:
-                                        signal.pthread_sigmask(
-                                            signal.SIG_SETMASK,
-                                            previous_mask,
-                                        )
-                                except OSError as exc:
-                                    return_code = 125
-                                    raw_stderr.write(
-                                        f"trusted command launch failed: {type(exc).__name__}\n".encode(
-                                            "ascii"
-                                        )
-                                    )
-                                except BaseException as exc:
-                                    if process is not None:
-                                        _kill_and_reap_process_group(
-                                            process,
-                                            hard_cutoff_active=isinstance(
-                                                exc,
-                                                (
-                                                    ExecuteHardDeadline,
-                                                    FinalizationHardDeadline,
-                                                ),
-                                            ),
-                                        )
-                                    raise
-                                else:
-                                    try:
-                                        process.communicate(
-                                            input=input_bytes,
-                                            timeout=effective_timeout,
-                                        )
-                                    except subprocess.TimeoutExpired:
-                                        timed_out = True
-                                        _kill_and_reap_process_group(process)
-                                    except BaseException as exc:
-                                        _kill_and_reap_process_group(
-                                            process,
-                                            hard_cutoff_active=isinstance(
-                                                exc,
-                                                (
-                                                    ExecuteHardDeadline,
-                                                    FinalizationHardDeadline,
-                                                ),
-                                            ),
-                                        )
-                                        raise
-                                    return_code = process.returncode
-                            raw_stdout = raw_stdout_path.read_bytes()
-                            raw_stderr = raw_stderr_path.read_bytes()
+                        try:
+                            captured = _run_bounded_process(
+                                command,
+                                environment=self.environment,
+                                input_bytes=input_bytes,
+                                timeout_seconds=effective_timeout,
+                            )
+                        except OSError as exc:
+                            return_code = 125
+                            raw_stdout = b""
+                            raw_stderr = (
+                                f"trusted command launch failed: {type(exc).__name__}\n"
+                            ).encode("ascii")
+                        else:
+                            return_code = captured.return_code
+                            raw_stdout = captured.stdout
+                            raw_stderr = captured.stderr
+                            timed_out = captured.timed_out
+                            breaches.extend(captured.breaches)
                         if timed_out:
                             return_code = 124
                             breaches.append(
@@ -1528,21 +1679,13 @@ class Recorder:
                                 if clipped_by_automated_deadline
                                 else "command_deadline"
                             )
-                            raw_stderr += (
-                                f"\nlocal command timeout after {effective_timeout:.6f} seconds\n"
-                            ).encode("ascii")
-                        if len(raw_stdout) > COMMAND_STREAM_MAX_BYTES:
-                            breaches.append("stdout_size")
-                        if len(raw_stderr) > COMMAND_STREAM_MAX_BYTES:
-                            breaches.append("stderr_size")
-                        if stdout_observer is not None and "stdout_size" not in breaches:
+                        if stdout_observer is not None and not any(
+                            breach in {"stdout_size", "stderr_size"}
+                            for breach in breaches
+                        ):
                             stdout_observer(raw_stdout)
-                        stdout = raw_stdout[:COMMAND_STREAM_MAX_BYTES].decode(
-                            "utf-8", errors="replace"
-                        )
-                        stderr = raw_stderr[:COMMAND_STREAM_MAX_BYTES].decode(
-                            "utf-8", errors="replace"
-                        )
+                        stdout = raw_stdout.decode("utf-8", errors="replace")
+                        stderr = raw_stderr.decode("utf-8", errors="replace")
                         if breaches and return_code == 0:
                             return_code = 125
         if stdout_transform is not None and not any(
@@ -1696,6 +1839,27 @@ def _allowlisted_lima_names(raw: str) -> str:
             raise ValueError("Lima instance name is invalid")
         names.append(name)
     return "".join(json.dumps({"name": name}, sort_keys=True) + "\n" for name in names)
+
+
+def _allowlisted_lima_names_and_status(raw: str) -> str:
+    records = []
+    for line in raw.splitlines():
+        value = json.loads(line)
+        if not isinstance(value, dict):
+            raise ValueError("Lima instance record is invalid")
+        name = value.get("name")
+        status = value.get("status")
+        if (
+            not isinstance(name, str)
+            or not name
+            or "\0" in name
+            or "\n" in name
+            or not isinstance(status, str)
+            or re.fullmatch(r"[A-Za-z]+", status) is None
+        ):
+            raise ValueError("Lima instance name or status is invalid")
+        records.append({"name": name, "status": status})
+    return "".join(json.dumps(record, sort_keys=True) + "\n" for record in records)
 
 
 def _binary_size(value: str) -> int:
@@ -2278,68 +2442,26 @@ def _bounded_preflight_command(argv: Sequence[str]) -> tuple[int, bytes, bytes, 
     """Run one pre-evidence inspection under the normal command envelope."""
 
     command = _validate_argv(argv)
-    timed_out = False
-    with tempfile.TemporaryDirectory(prefix="q1-l1-preflight-") as temporary:
-        stdout_path = Path(temporary) / "stdout"
-        stderr_path = Path(temporary) / "stderr"
-        with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-            process: subprocess.Popen[bytes] | None = None
-            try:
-                previous_mask = signal.pthread_sigmask(
-                    signal.SIG_BLOCK,
-                    {signal.SIGALRM},
-                )
-                try:
-                    process = subprocess.Popen(
-                        command,
-                        stdin=subprocess.DEVNULL,
-                        stdout=stdout,
-                        stderr=stderr,
-                        env=_safe_environment(),
-                        start_new_session=True,
-                        preexec_fn=_set_child_output_limit,
-                    )
-                finally:
-                    signal.pthread_sigmask(
-                        signal.SIG_SETMASK,
-                        previous_mask,
-                    )
-            except OSError as exc:
-                raise RuntimeError("preflight command could not start") from exc
-            except BaseException as exc:
-                if process is not None:
-                    _kill_and_reap_process_group(
-                        process,
-                        hard_cutoff_active=isinstance(
-                            exc,
-                            (ExecuteHardDeadline, FinalizationHardDeadline),
-                        ),
-                    )
-                raise
-            try:
-                if process is None:  # pragma: no cover - successful Popen assigns it
-                    raise RuntimeError("preflight command process was unavailable")
-                process.wait(timeout=DEFAULT_COMMAND_TIMEOUT_SECONDS)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                _kill_and_reap_process_group(process)
-            except BaseException as exc:
-                _kill_and_reap_process_group(
-                    process,
-                    hard_cutoff_active=isinstance(
-                        exc,
-                        (ExecuteHardDeadline, FinalizationHardDeadline),
-                    ),
-                )
-                raise
-        raw_stdout = stdout_path.read_bytes()
-        raw_stderr = stderr_path.read_bytes()
-    if (
-        len(raw_stdout) > COMMAND_STREAM_MAX_BYTES
-        or len(raw_stderr) > COMMAND_STREAM_MAX_BYTES
-    ):
-        raise RuntimeError("preflight command exceeded its output limit")
-    return process.returncode, raw_stdout, raw_stderr, timed_out
+    try:
+        captured = _run_bounded_process(
+            command,
+            environment=_safe_environment(),
+            input_bytes=None,
+            timeout_seconds=DEFAULT_COMMAND_TIMEOUT_SECONDS,
+        )
+    except OSError as exc:
+        raise RuntimeError("preflight command could not start") from exc
+    if captured.breaches:
+        raise RuntimeError(
+            "preflight command exceeded its output limit: "
+            + ",".join(captured.breaches)
+        )
+    return (
+        captured.return_code,
+        captured.stdout,
+        captured.stderr,
+        captured.timed_out,
+    )
 
 
 def _preflight_lima_records() -> list[dict[str, Any]]:
@@ -2482,6 +2604,11 @@ def _assert_no_orphaned_run() -> None:
 
 def _preflight(expected_commit: str) -> str:
     _checkout_guard(expected_commit)
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        require_candidate_creation_qualification(
+            LOOP_CANDIDATE_QUALIFICATION_ROOT,
+            expected_commit,
+        )
     if RESULT_PATH.exists():
         raise RuntimeError(f"{ACTIVE_LOOP.loop_id} already has RESULT.md")
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -2540,6 +2667,32 @@ def _copy_run_authorities(evidence: Path) -> None:
                 loop_destination / path.name,
                 maximum_bytes=16 * 1024 * 1024,
             )
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        setup_destination = (
+            evidence / "setup" / "candidate-creation-qualification"
+        )
+        setup_destination.mkdir(parents=True)
+        for path in sorted(LOOP_CANDIDATE_QUALIFICATION_ROOT.rglob("*")):
+            relative = path.relative_to(LOOP_CANDIDATE_QUALIFICATION_ROOT)
+            target = setup_destination / relative
+            if path.is_symlink():
+                raise Inconclusive(
+                    "evidence_capture",
+                    "candidate qualification contains a symbolic link",
+                )
+            if path.is_dir():
+                target.mkdir(exist_ok=True)
+            elif path.is_file() and not path.is_symlink():
+                _copy_bounded_into_evidence(
+                    path,
+                    target,
+                    maximum_bytes=COMMAND_STREAM_MAX_BYTES,
+                )
+            else:
+                raise Inconclusive(
+                    "evidence_capture",
+                    "candidate qualification contains a non-regular path",
+                )
     for source_root, name in (
         (REPRODUCTION, "reproduction"),
         (ROOT / "evaluator", "evaluator"),
@@ -4660,6 +4813,14 @@ def _required_evidence(evidence: Path, state: dict[str, Any]) -> list[Path]:
             evidence / "authorities" / "loop" / path.name
             for path in LOOP_AUTHORITY_PATHS
         )
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        setup_root = evidence / "setup" / "candidate-creation-qualification"
+        required.extend((setup_root / "commands.jsonl", setup_root / "receipt.json"))
+        required.extend(
+            path
+            for path in setup_root.rglob("*")
+            if path.is_file() and not path.is_symlink()
+        )
     required.extend(
         evidence / "authorities" / "public-contract" / path.relative_to(ROOT / "public" / "contract")
         for path in (ROOT / "public" / "contract").rglob("*")
@@ -6532,6 +6693,28 @@ def finalize(run_id: str, attestation_path: Path, contract_commit: str) -> int:
 
 
 def plan() -> int:
+    sequence = ["clean reviewed contract commit"]
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        sequence.append(
+            "one candidate disk create/delete qualification outside task-cost measurement"
+        )
+    sequence.extend(
+        (
+            f"agent-owned {ACTIVE_LOOP.loop_id} setup and zero scoped residue before run clocks or evidence",
+            "start run clocks and evidence, then recheck zero scoped residue",
+            "exact q1-l1-evaluator fingerprint, dispatch, evaluator, and isolation validation",
+            "fresh candidate VM provisioning and boundary probe",
+            "stdin API-key login",
+            "initial agent invocation",
+            "manifested candidate transfer",
+            "clean bootstrap, typing, and isolated behavior",
+            "one same-thread remediation and complete gate rerun when needed",
+            "verify v3 index and append its execution-completion receipt",
+            "automatic Rejected or Inconclusive: commit locally",
+            "otherwise PendingHumanReview: stop for human attestation",
+            "verify v4 index, append its finalization-completion receipt, and commit locally",
+        )
+    )
     print(
         json.dumps(
             {
@@ -6567,22 +6750,7 @@ def plan() -> int:
                     },
                 },
                 "human_gate": "after all non-human gates pass",
-                "sequence": [
-                    "clean reviewed contract commit",
-                    f"agent-owned {ACTIVE_LOOP.loop_id} setup and zero scoped residue before run clocks or evidence",
-                    "start run clocks and evidence, then recheck zero scoped residue",
-                    "exact q1-l1-evaluator fingerprint, dispatch, evaluator, and isolation validation",
-                    "fresh candidate VM provisioning and boundary probe",
-                    "stdin API-key login",
-                    "initial agent invocation",
-                    "manifested candidate transfer",
-                    "clean bootstrap, typing, and isolated behavior",
-                    "one same-thread remediation and complete gate rerun when needed",
-                    "verify v3 index and append its execution-completion receipt",
-                    "automatic Rejected or Inconclusive: commit locally",
-                    "otherwise PendingHumanReview: stop for human attestation",
-                    "verify v4 index, append its finalization-completion receipt, and commit locally",
-                ],
+                "sequence": sequence,
                 "timeouts_seconds": {
                     "agent_guest": AGENT_TIMEOUT_SECONDS,
                     "agent_outer": AGENT_OUTER_TIMEOUT_SECONDS,
@@ -6608,6 +6776,361 @@ def plan() -> int:
         )
     )
     return 0
+
+
+def _qualification_command_summary(result: CommandResult | None) -> dict[str, Any] | None:
+    if result is None:
+        return None
+    return {
+        "duration_seconds": result.duration_seconds,
+        "limit_breach": result.limit_breach,
+        "return_code": result.return_code,
+        "timed_out": result.timed_out,
+    }
+
+
+def _qualification_path(root: Path) -> Path:
+    absolute = root.absolute()
+    expected = (LOOP_ROOT / "build" / "candidate-creation-qualification").absolute()
+    if absolute != expected:
+        raise ValueError("qualification root is not owned by the active loop")
+    build_root = absolute.parent
+    if build_root.exists() and (build_root.is_symlink() or not build_root.is_dir()):
+        raise RuntimeError("active-loop build root is not a real directory")
+    return absolute
+
+
+def qualify_candidate_creation(expected_commit: str, root: Path) -> int:
+    """Create and delete one candidate disk before measured execution."""
+
+    expected_commit = _validate_contract_commit(expected_commit)
+    root = _qualification_path(root)
+    receipt_path = root / "receipt.json"
+    if root.exists() or root.is_symlink():
+        raise RuntimeError("candidate-creation qualification was already attempted")
+    _checkout_guard(expected_commit)
+    lock_descriptor = _acquire_execution_lock()
+    try:
+        _assert_no_orphaned_run()
+        if RESULT_PATH.exists():
+            raise RuntimeError(f"{ACTIVE_LOOP.loop_id} already has RESULT.md")
+        run_id = _run_id()
+        instance = _instance_name(run_id)
+        started_wall = _utc_now()
+        started_monotonic = time.monotonic()
+        _write_json(
+            receipt_path,
+            {
+                "contract_commit": expected_commit,
+                "instance": instance,
+                "loop_id": ACTIVE_LOOP.loop_id,
+                "schema_version": 1,
+                "started_at": _timestamp(started_wall),
+                "status": "Running",
+            },
+        )
+        recorder = Recorder(root)
+        create_result: CommandResult | None = None
+        created_status: str | None = None
+        failures: list[str] = []
+        interrupted: BaseException | None = None
+        try:
+            create_result = recorder.run(
+                [
+                    "limactl",
+                    "create",
+                    "--name",
+                    instance,
+                    "--tty=false",
+                    str(REPRODUCTION / "candidate-lima.yaml"),
+                ],
+                label="qualify candidate disk creation",
+                timeout_seconds=PROVISION_TIMEOUT_SECONDS,
+                deadline_reserve_seconds=0,
+            )
+            breach = _command_breach(create_result)
+            if breach is not None:
+                failures.append(f"candidate creation breached {breach}")
+            elif create_result.return_code != 0:
+                failures.append(
+                    f"candidate creation exited {create_result.return_code}"
+                )
+            else:
+                listed = recorder.run(
+                    ["limactl", "list", "--json"],
+                    label="verify qualified candidate disk",
+                    stdout_transform=_allowlisted_lima_names_and_status,
+                )
+                records = []
+                try:
+                    records = [
+                        json.loads(line)
+                        for line in (recorder.evidence / listed.stdout_path)
+                        .read_text(encoding="utf-8")
+                        .splitlines()
+                    ]
+                except (OSError, ValueError, json.JSONDecodeError):
+                    records = []
+                matches = [
+                    value
+                    for value in records
+                    if isinstance(value, dict) and value.get("name") == instance
+                ]
+                if (
+                    _command_breach(listed) is not None
+                    or listed.return_code != 0
+                    or len(matches) != 1
+                    or matches[0].get("status") != "Stopped"
+                ):
+                    failures.append("candidate creation presence could not be verified")
+                else:
+                    created_status = "Stopped"
+        except BaseException as exc:
+            interrupted = exc
+            failures.append(f"candidate creation raised {type(exc).__name__}")
+        try:
+            cleanup_failures = _cleanup_candidate(recorder, instance, False)
+        except BaseException as exc:
+            cleanup_failures = [f"candidate cleanup raised {type(exc).__name__}"]
+            if interrupted is None:
+                interrupted = exc
+        if cleanup_failures:
+            failures.append("candidate cleanup did not close cleanly")
+        residue_clean = False
+        try:
+            _assert_no_orphaned_run()
+            residue_clean = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("post-qualification residue check did not pass")
+        source_unchanged = False
+        try:
+            _checkout_guard(expected_commit)
+            source_unchanged = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("reviewed source changed during qualification")
+        finished_wall = _utc_now()
+        commands_path = root / "commands.jsonl"
+        commands_sha256 = _sha256(commands_path) if commands_path.is_file() else None
+        if commands_sha256 is None:
+            failures.append("qualification command record is missing")
+        passed = not failures and interrupted is None and residue_clean
+        receipt = {
+            "commands_sha256": commands_sha256,
+            "contract_commit": expected_commit,
+            "create": _qualification_command_summary(create_result),
+            "created_status": created_status,
+            "duration_seconds": time.monotonic() - started_monotonic,
+            "failure_categories": failures,
+            "finished_at": _timestamp(finished_wall),
+            "instance": instance,
+            "loop_id": ACTIVE_LOOP.loop_id,
+            "postconditions": {
+                "candidate_absent_and_evaluator_residue_zero": residue_clean,
+                "created_without_starting": created_status == "Stopped",
+                "reviewed_source_unchanged": source_unchanged,
+            },
+            "redaction_count": len(recorder.redactions),
+            "schema_version": 1,
+            "started_at": _timestamp(started_wall),
+            "status": "Passed" if passed else "Failed",
+        }
+        _write_json(receipt_path, receipt)
+        _assert_public_safe_terminal(root, receipt_path)
+        if interrupted is not None:
+            raise interrupted.with_traceback(interrupted.__traceback__)
+        if not passed:
+            raise RuntimeError("candidate-creation qualification failed")
+        print(json.dumps(receipt, sort_keys=True))
+        return 0
+    finally:
+        os.close(lock_descriptor)
+
+
+def _qualification_json_lines(path: Path) -> list[dict[str, Any]]:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > CONTROL_DOCUMENT_MAX_BYTES:
+        raise RuntimeError("candidate-creation qualification record is invalid")
+    try:
+        values = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("candidate-creation qualification record is invalid") from exc
+    if not all(isinstance(value, dict) for value in values):
+        raise RuntimeError("candidate-creation qualification record is invalid")
+    return cast(list[dict[str, Any]], values)
+
+
+def _validate_candidate_qualification_commands(
+    root: Path,
+    receipt: dict[str, Any],
+) -> None:
+    instance = cast(str, receipt["instance"])
+    candidate_yaml = (
+        f"{REDACTED_HOST_REPOSITORY}/"
+        + (REPRODUCTION / "candidate-lima.yaml")
+        .relative_to(REPOSITORY_ROOT)
+        .as_posix()
+    )
+    expected = (
+        (
+            "qualify candidate disk creation",
+            ["limactl", "create", "--name", instance, "--tty=false", candidate_yaml],
+        ),
+        ("verify qualified candidate disk", ["limactl", "list", "--json"]),
+        ("inspect candidate VM before teardown", ["limactl", "list", "--json"]),
+        ("delete candidate VM", ["limactl", "delete", "--force", instance]),
+        ("verify candidate VM teardown", ["limactl", "list", "--json"]),
+    )
+    records = _qualification_json_lines(root / "commands.jsonl")
+    record_keys = {
+        "argv",
+        "category",
+        "duration_seconds",
+        "finished_at",
+        "kind",
+        "label",
+        "limit_breach",
+        "resources",
+        "return_code",
+        "sequence",
+        "started_at",
+        "stderr_path",
+        "stdout_path",
+        "timed_out",
+    }
+    if len(records) != len(expected):
+        raise RuntimeError("candidate-creation qualification command sequence is invalid")
+    for sequence, (record, (label, argv)) in enumerate(zip(records, expected), start=1):
+        duration = record.get("duration_seconds")
+        if (
+            set(record) != record_keys
+            or record.get("kind") != "command"
+            or record.get("sequence") != sequence
+            or record.get("label") != label
+            or record.get("argv") != argv
+            or record.get("category") != "machine"
+            or record.get("return_code") != 0
+            or record.get("timed_out") is not False
+            or record.get("limit_breach") is not None
+            or not isinstance(duration, (int, float))
+            or isinstance(duration, bool)
+            or not math.isfinite(duration)
+            or duration < 0
+        ):
+            raise RuntimeError("candidate-creation qualification command sequence is invalid")
+        for stream in ("stdout_path", "stderr_path"):
+            relative = record.get(stream)
+            if not isinstance(relative, str):
+                raise RuntimeError("candidate-creation qualification stream is invalid")
+            path = root / relative
+            if (
+                not path.absolute().is_relative_to(root.absolute())
+                or path.is_symlink()
+                or not path.is_file()
+            ):
+                raise RuntimeError("candidate-creation qualification stream is invalid")
+    if receipt["create"] != {
+        "duration_seconds": records[0]["duration_seconds"],
+        "limit_breach": records[0]["limit_breach"],
+        "return_code": records[0]["return_code"],
+        "timed_out": records[0]["timed_out"],
+    }:
+        raise RuntimeError("candidate-creation qualification receipt disagrees with commands")
+    created = _qualification_json_lines(root / cast(str, records[1]["stdout_path"]))
+    if not any(
+        value.get("name") == instance and value.get("status") == "Stopped"
+        for value in created
+    ) or not any(
+        value.get("name") == EVALUATOR_INSTANCE and value.get("status") == "Running"
+        for value in created
+    ):
+        raise RuntimeError("candidate-creation qualification stopped state is unproven")
+    before_delete = _qualification_json_lines(
+        root / cast(str, records[2]["stdout_path"])
+    )
+    after_delete = _qualification_json_lines(
+        root / cast(str, records[4]["stdout_path"])
+    )
+    if not any(value.get("name") == instance for value in before_delete) or any(
+        value.get("name") == instance for value in after_delete
+    ):
+        raise RuntimeError("candidate-creation qualification cleanup is unproven")
+
+
+def require_candidate_creation_qualification(
+    root: Path,
+    expected_commit: str,
+) -> None:
+    """Require the one-shot Q1/L3 setup receipt before measured execution."""
+
+    expected_commit = _validate_contract_commit(expected_commit)
+    root = _qualification_path(root)
+    receipt_path = root / "receipt.json"
+    commands_path = root / "commands.jsonl"
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError("candidate-creation qualification receipt is missing")
+    if receipt_path.is_symlink() or commands_path.is_symlink():
+        raise RuntimeError("candidate-creation qualification contains a symlink")
+    receipt = _read_bounded_json(
+        receipt_path,
+        maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+    )
+    required = {
+        "commands_sha256",
+        "contract_commit",
+        "create",
+        "created_status",
+        "duration_seconds",
+        "failure_categories",
+        "finished_at",
+        "instance",
+        "loop_id",
+        "postconditions",
+        "redaction_count",
+        "schema_version",
+        "started_at",
+        "status",
+    }
+    if (
+        not isinstance(receipt, dict)
+        or set(receipt) != required
+        or receipt.get("schema_version") != 1
+        or receipt.get("loop_id") != ACTIVE_LOOP.loop_id
+        or receipt.get("contract_commit") != expected_commit
+        or receipt.get("status") != "Passed"
+        or receipt.get("failure_categories") != []
+        or receipt.get("postconditions")
+        != {
+            "candidate_absent_and_evaluator_residue_zero": True,
+            "created_without_starting": True,
+            "reviewed_source_unchanged": True,
+        }
+        or receipt.get("created_status") != "Stopped"
+        or not isinstance(receipt.get("create"), dict)
+        or set(receipt["create"])
+        != {"duration_seconds", "limit_breach", "return_code", "timed_out"}
+        or receipt["create"].get("return_code") != 0
+        or receipt["create"].get("timed_out") is not False
+        or receipt["create"].get("limit_breach") is not None
+        or not isinstance(receipt["create"].get("duration_seconds"), (int, float))
+        or isinstance(receipt["create"].get("duration_seconds"), bool)
+        or not math.isfinite(receipt["create"]["duration_seconds"])
+        or receipt["create"]["duration_seconds"] < 0
+        or not isinstance(receipt.get("duration_seconds"), (int, float))
+        or isinstance(receipt.get("duration_seconds"), bool)
+        or not math.isfinite(receipt["duration_seconds"])
+        or receipt["duration_seconds"] < 0
+        or not isinstance(receipt.get("redaction_count"), int)
+        or isinstance(receipt.get("redaction_count"), bool)
+        or receipt["redaction_count"] < 0
+        or not isinstance(receipt.get("instance"), str)
+        or INSTANCE_PATTERN.fullmatch(receipt["instance"]) is None
+        or not isinstance(receipt.get("commands_sha256"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", receipt["commands_sha256"]) is None
+    ):
+        raise RuntimeError("candidate-creation qualification did not pass this contract")
+    if not commands_path.is_file() or _sha256(commands_path) != receipt["commands_sha256"]:
+        raise RuntimeError("candidate-creation qualification command record changed")
+    _assert_public_safe_terminal(root, receipt_path)
+    _validate_candidate_qualification_commands(root, receipt)
 
 
 def build_parser() -> argparse.ArgumentParser:
