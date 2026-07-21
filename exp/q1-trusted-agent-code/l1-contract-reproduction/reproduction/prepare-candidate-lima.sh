@@ -30,10 +30,10 @@ limactl copy --backend=scp --recursive \
   "${root}/public" \
   "${instance}:${setup_dir}/"
 limactl shell "${instance}" -- sh "${setup_dir}/bootstrap-candidate-lima.sh" "${setup_dir}"
+limactl shell "${instance}" -- sh -lc 'sudo rmdir "$HOME/candidate/.codex"'
 python3 "${root}/reproduction/verify_candidate_boundary.py" \
   --instance "${instance}" \
   --json-report "${boundary_report}"
 limactl shell "${instance}" -- sh -lc 'rm "$HOME/candidate/.boundary_probe.py"'
 limactl shell "${instance}" -- sh -lc 'rm "$HOME/.codex/auth-boundary-sentinel"'
-limactl shell "${instance}" -- sh -lc 'sudo rmdir "$HOME/candidate/.codex"'
 limactl shell "${instance}" -- sudo rm -rf "${setup_dir}"

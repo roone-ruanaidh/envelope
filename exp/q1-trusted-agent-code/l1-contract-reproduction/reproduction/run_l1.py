@@ -90,6 +90,9 @@ PROVISION_TIMEOUT_SECONDS = 30 * 60
 CLEANUP_TIMEOUT_SECONDS = 5 * 60
 FINALIZATION_TIMEOUT_SECONDS = 5 * 60
 FINALIZATION_ATTEMPT_NAME = "finalization-attempt.json"
+QUALIFICATION_REPORT_NAME = "qualification.json"
+QUALIFICATION_INDEX_NAME = "qualification-evidence-index.json"
+QUALIFICATION_COMPLETION_NAME = "qualification-completion.json"
 EXECUTION_COMPLETION_NAME = "execution-completion.json"
 FINALIZATION_COMPLETION_NAME = "finalization-completion.json"
 AUTOMATED_PHASE_TIMEOUT_SECONDS = 3 * 60 * 60
@@ -106,6 +109,15 @@ RUN_ID_PATTERN = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$")
 INSTANCE_PATTERN = re.compile(
     r"^q1-l1-candidate-[0-9]{8}t[0-9]{6}z-[0-9a-f]{8}$"
 )
+EXPECTED_CANDIDATE_BOUNDARY = {
+    "external_command_network": "blocked",
+    "home_codex_control": "unreadable_and_unwritable",
+    "host_workspace": "absent",
+    "outside_workspace": "unreadable_and_unwritable",
+    "privilege_escalation": "blocked",
+    "protected_candidate_paths": "read_only",
+    "workspace": "writable",
+}
 TOKEN_FIELDS = (
     "input_tokens",
     "cached_input_tokens",
@@ -190,7 +202,7 @@ def configure_loop(context: LoopContext) -> None:
     if context.candidate_qualification_root is not None:
         qualification_root = context.candidate_qualification_root.absolute()
         expected_qualification_root = (
-            root / "build" / "candidate-creation-qualification"
+            root / "build" / "candidate-boundary-qualification"
         ).absolute()
         if qualification_root != expected_qualification_root:
             raise ValueError("candidate qualification root is not owned by the loop")
@@ -237,7 +249,7 @@ def _run_context_record() -> dict[str, Any]:
         }
     if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
         record["setup"] = {
-            "candidate_creation_qualification": {
+            "candidate_boundary_qualification": {
                 "included_in_evidence": True,
                 "measured_as_task_cost": False,
             }
@@ -770,6 +782,11 @@ def _atomic_write_new(path: Path, data: bytes) -> None:
 
 
 def _evidence_generation_for(path: Path) -> Path | None:
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        qualification = LOOP_CANDIDATE_QUALIFICATION_ROOT.absolute()
+        absolute = path.absolute()
+        if absolute != qualification and absolute.is_relative_to(qualification):
+            return qualification
     try:
         relative = path.absolute().relative_to(EVIDENCE_ROOT.absolute())
     except ValueError:
@@ -968,11 +985,9 @@ def _copy_bounded_into_evidence(
             raise Inconclusive("evidence_capture", f"{source.name} changed during capture")
     finally:
         os.close(descriptor)
-    evidence = destination
-    while evidence.parent != EVIDENCE_ROOT and evidence.parent != evidence:
-        evidence = evidence.parent
-    if evidence.parent != EVIDENCE_ROOT:
-        raise ValueError("bounded evidence destination is outside the evidence root")
+    evidence = _evidence_generation_for(destination)
+    if evidence is None:
+        raise ValueError("bounded evidence destination is outside an evidence owner")
     _require_evidence_capacity(evidence, len(data), replacing=destination)
     _atomic_write(destination, data)
 
@@ -984,6 +999,8 @@ def _sha256(path: Path) -> str:
 
 
 def _completion_spec(kind: str) -> tuple[str, str]:
+    if kind == "qualification":
+        return QUALIFICATION_COMPLETION_NAME, QUALIFICATION_INDEX_NAME
     if kind == "execution":
         return EXECUTION_COMPLETION_NAME, "evidence-index.json"
     if kind == "finalization":
@@ -1841,27 +1858,6 @@ def _allowlisted_lima_names(raw: str) -> str:
     return "".join(json.dumps({"name": name}, sort_keys=True) + "\n" for name in names)
 
 
-def _allowlisted_lima_names_and_status(raw: str) -> str:
-    records = []
-    for line in raw.splitlines():
-        value = json.loads(line)
-        if not isinstance(value, dict):
-            raise ValueError("Lima instance record is invalid")
-        name = value.get("name")
-        status = value.get("status")
-        if (
-            not isinstance(name, str)
-            or not name
-            or "\0" in name
-            or "\n" in name
-            or not isinstance(status, str)
-            or re.fullmatch(r"[A-Za-z]+", status) is None
-        ):
-            raise ValueError("Lima instance name or status is invalid")
-        records.append({"name": name, "status": status})
-    return "".join(json.dumps(record, sort_keys=True) + "\n" for record in records)
-
-
 def _binary_size(value: str) -> int:
     match = re.fullmatch(r"([1-9][0-9]*)(KiB|MiB|GiB|TiB)", value)
     if match is None:
@@ -2605,7 +2601,7 @@ def _assert_no_orphaned_run() -> None:
 def _preflight(expected_commit: str) -> str:
     _checkout_guard(expected_commit)
     if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
-        require_candidate_creation_qualification(
+        require_candidate_boundary_qualification(
             LOOP_CANDIDATE_QUALIFICATION_ROOT,
             expected_commit,
         )
@@ -2669,7 +2665,7 @@ def _copy_run_authorities(evidence: Path) -> None:
             )
     if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
         setup_destination = (
-            evidence / "setup" / "candidate-creation-qualification"
+            evidence / "setup" / "candidate-boundary-qualification"
         )
         setup_destination.mkdir(parents=True)
         for path in sorted(LOOP_CANDIDATE_QUALIFICATION_ROOT.rglob("*")):
@@ -4814,8 +4810,19 @@ def _required_evidence(evidence: Path, state: dict[str, Any]) -> list[Path]:
             for path in LOOP_AUTHORITY_PATHS
         )
     if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
-        setup_root = evidence / "setup" / "candidate-creation-qualification"
-        required.extend((setup_root / "commands.jsonl", setup_root / "receipt.json"))
+        setup_root = evidence / "setup" / "candidate-boundary-qualification"
+        required.extend(
+            setup_root / name
+            for name in (
+                "boundary-validation.json",
+                "commands.jsonl",
+                "redactions.json",
+                "setup-accounting.json",
+                QUALIFICATION_REPORT_NAME,
+                QUALIFICATION_INDEX_NAME,
+                QUALIFICATION_COMPLETION_NAME,
+            )
+        )
         required.extend(
             path
             for path in setup_root.rglob("*")
@@ -6696,7 +6703,8 @@ def plan() -> int:
     sequence = ["clean reviewed contract commit"]
     if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
         sequence.append(
-            "one candidate disk create/delete qualification outside task-cost measurement"
+            "one exact candidate-boundary qualification outside task-cost measurement; "
+            "a started failure closes Inconclusive"
         )
     sequence.extend(
         (
@@ -6778,20 +6786,9 @@ def plan() -> int:
     return 0
 
 
-def _qualification_command_summary(result: CommandResult | None) -> dict[str, Any] | None:
-    if result is None:
-        return None
-    return {
-        "duration_seconds": result.duration_seconds,
-        "limit_breach": result.limit_breach,
-        "return_code": result.return_code,
-        "timed_out": result.timed_out,
-    }
-
-
 def _qualification_path(root: Path) -> Path:
     absolute = root.absolute()
-    expected = (LOOP_ROOT / "build" / "candidate-creation-qualification").absolute()
+    expected = (LOOP_ROOT / "build" / "candidate-boundary-qualification").absolute()
     if absolute != expected:
         raise ValueError("qualification root is not owned by the active loop")
     build_root = absolute.parent
@@ -6800,181 +6797,31 @@ def _qualification_path(root: Path) -> Path:
     return absolute
 
 
-def qualify_candidate_creation(expected_commit: str, root: Path) -> int:
-    """Create and delete one candidate disk before measured execution."""
-
-    expected_commit = _validate_contract_commit(expected_commit)
-    root = _qualification_path(root)
-    receipt_path = root / "receipt.json"
-    if root.exists() or root.is_symlink():
-        raise RuntimeError("candidate-creation qualification was already attempted")
-    _checkout_guard(expected_commit)
-    lock_descriptor = _acquire_execution_lock()
-    try:
-        _assert_no_orphaned_run()
-        if RESULT_PATH.exists():
-            raise RuntimeError(f"{ACTIVE_LOOP.loop_id} already has RESULT.md")
-        run_id = _run_id()
-        instance = _instance_name(run_id)
-        started_wall = _utc_now()
-        started_monotonic = time.monotonic()
-        _write_json(
-            receipt_path,
-            {
-                "contract_commit": expected_commit,
-                "instance": instance,
-                "loop_id": ACTIVE_LOOP.loop_id,
-                "schema_version": 1,
-                "started_at": _timestamp(started_wall),
-                "status": "Running",
-            },
-        )
-        recorder = Recorder(root)
-        create_result: CommandResult | None = None
-        created_status: str | None = None
-        failures: list[str] = []
-        interrupted: BaseException | None = None
-        try:
-            create_result = recorder.run(
-                [
-                    "limactl",
-                    "create",
-                    "--name",
-                    instance,
-                    "--tty=false",
-                    str(REPRODUCTION / "candidate-lima.yaml"),
-                ],
-                label="qualify candidate disk creation",
-                timeout_seconds=PROVISION_TIMEOUT_SECONDS,
-                deadline_reserve_seconds=0,
-            )
-            breach = _command_breach(create_result)
-            if breach is not None:
-                failures.append(f"candidate creation breached {breach}")
-            elif create_result.return_code != 0:
-                failures.append(
-                    f"candidate creation exited {create_result.return_code}"
-                )
-            else:
-                listed = recorder.run(
-                    ["limactl", "list", "--json"],
-                    label="verify qualified candidate disk",
-                    stdout_transform=_allowlisted_lima_names_and_status,
-                )
-                records = []
-                try:
-                    records = [
-                        json.loads(line)
-                        for line in (recorder.evidence / listed.stdout_path)
-                        .read_text(encoding="utf-8")
-                        .splitlines()
-                    ]
-                except (OSError, ValueError, json.JSONDecodeError):
-                    records = []
-                matches = [
-                    value
-                    for value in records
-                    if isinstance(value, dict) and value.get("name") == instance
-                ]
-                if (
-                    _command_breach(listed) is not None
-                    or listed.return_code != 0
-                    or len(matches) != 1
-                    or matches[0].get("status") != "Stopped"
-                ):
-                    failures.append("candidate creation presence could not be verified")
-                else:
-                    created_status = "Stopped"
-        except BaseException as exc:
-            interrupted = exc
-            failures.append(f"candidate creation raised {type(exc).__name__}")
-        try:
-            cleanup_failures = _cleanup_candidate(recorder, instance, False)
-        except BaseException as exc:
-            cleanup_failures = [f"candidate cleanup raised {type(exc).__name__}"]
-            if interrupted is None:
-                interrupted = exc
-        if cleanup_failures:
-            failures.append("candidate cleanup did not close cleanly")
-        residue_clean = False
-        try:
-            _assert_no_orphaned_run()
-            residue_clean = True
-        except (OSError, ValueError, RuntimeError):
-            failures.append("post-qualification residue check did not pass")
-        source_unchanged = False
-        try:
-            _checkout_guard(expected_commit)
-            source_unchanged = True
-        except (OSError, ValueError, RuntimeError):
-            failures.append("reviewed source changed during qualification")
-        finished_wall = _utc_now()
-        commands_path = root / "commands.jsonl"
-        commands_sha256 = _sha256(commands_path) if commands_path.is_file() else None
-        if commands_sha256 is None:
-            failures.append("qualification command record is missing")
-        passed = not failures and interrupted is None and residue_clean
-        receipt = {
-            "commands_sha256": commands_sha256,
-            "contract_commit": expected_commit,
-            "create": _qualification_command_summary(create_result),
-            "created_status": created_status,
-            "duration_seconds": time.monotonic() - started_monotonic,
-            "failure_categories": failures,
-            "finished_at": _timestamp(finished_wall),
-            "instance": instance,
-            "loop_id": ACTIVE_LOOP.loop_id,
-            "postconditions": {
-                "candidate_absent_and_evaluator_residue_zero": residue_clean,
-                "created_without_starting": created_status == "Stopped",
-                "reviewed_source_unchanged": source_unchanged,
-            },
-            "redaction_count": len(recorder.redactions),
-            "schema_version": 1,
-            "started_at": _timestamp(started_wall),
-            "status": "Passed" if passed else "Failed",
-        }
-        _write_json(receipt_path, receipt)
-        _assert_public_safe_terminal(root, receipt_path)
-        if interrupted is not None:
-            raise interrupted.with_traceback(interrupted.__traceback__)
-        if not passed:
-            raise RuntimeError("candidate-creation qualification failed")
-        print(json.dumps(receipt, sort_keys=True))
-        return 0
-    finally:
-        os.close(lock_descriptor)
-
-
 def _qualification_json_lines(path: Path) -> list[dict[str, Any]]:
-    if path.is_symlink() or not path.is_file() or path.stat().st_size > CONTROL_DOCUMENT_MAX_BYTES:
-        raise RuntimeError("candidate-creation qualification record is invalid")
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or path.stat().st_size > CONTROL_DOCUMENT_MAX_BYTES
+    ):
+        raise ValueError("candidate-boundary command record is invalid")
     try:
         values = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("candidate-creation qualification record is invalid") from exc
+        raise ValueError("candidate-boundary command record is invalid") from exc
     if not all(isinstance(value, dict) for value in values):
-        raise RuntimeError("candidate-creation qualification record is invalid")
+        raise ValueError("candidate-boundary command record is invalid")
     return cast(list[dict[str, Any]], values)
 
 
-def _validate_candidate_qualification_commands(
-    root: Path,
-    receipt: dict[str, Any],
-) -> None:
-    instance = cast(str, receipt["instance"])
-    candidate_yaml = (
+def _validate_candidate_boundary_commands(root: Path, instance: str) -> None:
+    prepare = (
         f"{REDACTED_HOST_REPOSITORY}/"
-        + (REPRODUCTION / "candidate-lima.yaml")
+        + (REPRODUCTION / "prepare-candidate-lima.sh")
         .relative_to(REPOSITORY_ROOT)
         .as_posix()
     )
     expected = (
-        (
-            "qualify candidate disk creation",
-            ["limactl", "create", "--name", instance, "--tty=false", candidate_yaml],
-        ),
-        ("verify qualified candidate disk", ["limactl", "list", "--json"]),
+        ("provision and probe candidate VM", [prepare, instance]),
         ("inspect candidate VM before teardown", ["limactl", "list", "--json"]),
         ("delete candidate VM", ["limactl", "delete", "--force", instance]),
         ("verify candidate VM teardown", ["limactl", "list", "--json"]),
@@ -6997,7 +6844,7 @@ def _validate_candidate_qualification_commands(
         "timed_out",
     }
     if len(records) != len(expected):
-        raise RuntimeError("candidate-creation qualification command sequence is invalid")
+        raise ValueError("candidate-boundary command sequence is invalid")
     for sequence, (record, (label, argv)) in enumerate(zip(records, expected), start=1):
         duration = record.get("duration_seconds")
         if (
@@ -7015,69 +6862,451 @@ def _validate_candidate_qualification_commands(
             or not math.isfinite(duration)
             or duration < 0
         ):
-            raise RuntimeError("candidate-creation qualification command sequence is invalid")
+            raise ValueError("candidate-boundary command sequence is invalid")
         for stream in ("stdout_path", "stderr_path"):
-            relative = record.get(stream)
-            if not isinstance(relative, str):
-                raise RuntimeError("candidate-creation qualification stream is invalid")
-            path = root / relative
+            relative_value = record.get(stream)
+            relative = (
+                PurePosixPath(relative_value)
+                if isinstance(relative_value, str)
+                else None
+            )
             if (
-                not path.absolute().is_relative_to(root.absolute())
-                or path.is_symlink()
-                or not path.is_file()
+                relative is None
+                or relative.is_absolute()
+                or not relative.parts
+                or any(part in {"", ".", ".."} for part in relative.parts)
+                or relative.as_posix() != relative_value
             ):
-                raise RuntimeError("candidate-creation qualification stream is invalid")
-    if receipt["create"] != {
-        "duration_seconds": records[0]["duration_seconds"],
-        "limit_breach": records[0]["limit_breach"],
-        "return_code": records[0]["return_code"],
-        "timed_out": records[0]["timed_out"],
-    }:
-        raise RuntimeError("candidate-creation qualification receipt disagrees with commands")
-    created = _qualification_json_lines(root / cast(str, records[1]["stdout_path"]))
-    if not any(
-        value.get("name") == instance and value.get("status") == "Stopped"
-        for value in created
-    ) or not any(
-        value.get("name") == EVALUATOR_INSTANCE and value.get("status") == "Running"
-        for value in created
+                raise ValueError("candidate-boundary command stream is invalid")
+            path = root.joinpath(*relative.parts)
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("candidate-boundary command stream is invalid")
+    before = {
+        value.get("name")
+        for value in _qualification_json_lines(
+            root / cast(str, records[1]["stdout_path"])
+        )
+    }
+    after = {
+        value.get("name")
+        for value in _qualification_json_lines(
+            root / cast(str, records[3]["stdout_path"])
+        )
+    }
+    if (
+        instance not in before
+        or EVALUATOR_INSTANCE not in before
+        or instance in after
+        or EVALUATOR_INSTANCE not in after
     ):
-        raise RuntimeError("candidate-creation qualification stopped state is unproven")
-    before_delete = _qualification_json_lines(
-        root / cast(str, records[2]["stdout_path"])
-    )
-    after_delete = _qualification_json_lines(
-        root / cast(str, records[4]["stdout_path"])
-    )
-    if not any(value.get("name") == instance for value in before_delete) or any(
-        value.get("name") == instance for value in after_delete
-    ):
-        raise RuntimeError("candidate-creation qualification cleanup is unproven")
+        raise ValueError("candidate-boundary teardown is unproven")
 
 
-def require_candidate_creation_qualification(
+def _validate_candidate_boundary_report(boundary: Any) -> None:
+    import verify_candidate_boundary as boundary_authority
+
+    if (
+        not isinstance(boundary, dict)
+        or set(boundary)
+        != {
+            "failure",
+            "failure_phase",
+            "passed",
+            "probe",
+            "probe_process",
+            "provenance",
+            "schema_version",
+        }
+        or boundary.get("schema_version") != 2
+        or boundary.get("passed") is not True
+        or boundary.get("failure") is not None
+        or boundary.get("failure_phase") is not None
+        or boundary.get("probe") != EXPECTED_CANDIDATE_BOUNDARY
+        or not isinstance(boundary.get("probe_process"), dict)
+        or not isinstance(boundary.get("provenance"), dict)
+    ):
+        raise ValueError("candidate-boundary qualification report did not pass")
+    process = boundary["probe_process"]
+    if (
+        set(process)
+        != {
+            "encoding",
+            "retention_limit_bytes",
+            "return_code",
+            "stderr",
+            "stdout",
+        }
+        or process.get("encoding") != "utf-8-backslashreplace"
+        or process.get("retention_limit_bytes") != 4 * 1024
+        or process.get("return_code") != 0
+    ):
+        raise ValueError("candidate-boundary probe process is invalid")
+    for stream_name in ("stdout", "stderr"):
+        stream = process.get(stream_name)
+        if (
+            not isinstance(stream, dict)
+            or set(stream) != {"redactions", "text", "truncated"}
+            or not isinstance(stream.get("text"), str)
+            or len(stream["text"].encode("utf-8")) > 4 * 1024
+            or not isinstance(stream.get("truncated"), bool)
+            or not isinstance(stream.get("redactions"), list)
+        ):
+            raise ValueError("candidate-boundary probe stream is invalid")
+        for redaction in stream["redactions"]:
+            if (
+                not isinstance(redaction, dict)
+                or set(redaction) != {"count", "item"}
+                or not isinstance(redaction.get("count"), int)
+                or isinstance(redaction.get("count"), bool)
+                or redaction["count"] <= 0
+                or redaction.get("item")
+                not in {"CANDIDATE_HOME", "HOST_HOME", "HOST_REPOSITORY", "OPENAI_API_KEY"}
+            ):
+                raise ValueError("candidate-boundary probe redaction is invalid")
+    provenance = boundary["provenance"]
+    expected_authority = boundary_authority._authority_hashes(ROOT)
+    expected_installed = set(boundary_authority.INSTALLED_AUTHORITIES.values())
+    expected_runtime = boundary_authority._required_packages(ROOT)
+    runtime = provenance.get("candidate_runtime")
+    if (
+        set(provenance)
+        != {
+            "authority_sha256",
+            "candidate_runtime",
+            "codex_cli_required",
+            "installed_sha256",
+            "lima",
+            "permissions_profile",
+        }
+        or provenance.get("codex_cli_required") != CODEX_VERSION
+        or provenance.get("permissions_profile") != "q1_l1"
+        or provenance.get("authority_sha256") != expected_authority
+        or not isinstance(provenance.get("installed_sha256"), dict)
+        or set(provenance["installed_sha256"]) != expected_installed
+        or any(
+            digest != expected_authority.get(name)
+            for name, digest in provenance["installed_sha256"].items()
+        )
+        or not isinstance(runtime, dict)
+        or set(runtime) != {"packages", "python_sha256", "python_version"}
+        or runtime.get("python_version") != "3.14.4"
+        or re.fullmatch(r"[0-9a-f]{64}", str(runtime.get("python_sha256"))) is None
+        or not isinstance(runtime.get("packages"), dict)
+        or set(runtime["packages"]) != set(expected_runtime) | {"pip"}
+        or any(runtime["packages"].get(name) != version for name, version in expected_runtime.items())
+        or not isinstance(runtime["packages"].get("pip"), str)
+        or not runtime["packages"]["pip"]
+        or provenance.get("lima") != boundary_authority._lima_authority(ROOT)
+    ):
+        raise ValueError("candidate-boundary provenance is invalid")
+
+
+def _qualification_accounting(
     root: Path,
-    expected_commit: str,
+    duration_seconds: float,
+) -> dict[str, Any]:
+    recorded_seconds: float | str = "unknown"
+    try:
+        records = _qualification_json_lines(root / "commands.jsonl")
+        durations = [record.get("duration_seconds") for record in records]
+        if all(
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(value)
+            and value >= 0
+            for value in durations
+        ):
+            recorded_seconds = sum(cast(float, value) for value in durations)
+    except (OSError, ValueError, RuntimeError):
+        pass
+    return {
+        "agent": {
+            "invocations": 0,
+            "model_cost": 0,
+            "reason": "qualification uses no API credential or model",
+        },
+        "candidate_vm": {
+            "monetary_cost": "unknown",
+            "setup_only": True,
+        },
+        "evaluator": {
+            "acceptance_workload_seconds": 0,
+            "residue_probe_seconds": "unknown",
+        },
+        "human": {
+            "active_minutes": "unknown",
+            "monetary_cost": "unknown",
+        },
+        "schema_version": 1,
+        "task_measurement_started": False,
+        "trusted_machine": {
+            "artifact_self_recording_tail_seconds": "unknown",
+            "monetary_cost": "unknown",
+            "recorded_command_seconds": recorded_seconds,
+            "setup_elapsed_lower_bound_seconds": duration_seconds,
+        },
+        "wall": {
+            "post_cutoff_tail_seconds": "unknown",
+            "setup_elapsed_lower_bound_seconds": duration_seconds,
+            "task_elapsed_seconds": 0,
+        },
+    }
+
+
+def _render_failed_qualification_result(report: dict[str, Any]) -> str:
+    failures = json.dumps(
+        report["failure_categories"],
+        ensure_ascii=True,
+        sort_keys=True,
+    )
+    return f"""# {ACTIVE_LOOP.loop_id} result — candidate-boundary qualification
+
+## Observed evidence
+
+- Run: `{report['run_id']}`
+- Executable contract commit: `{report['contract_commit']}`
+- Model or agent invoked: no
+- Task measurement started: no
+- Setup evidence: [`evidence/{report['run_id']}`](evidence/{report['run_id']})
+- Separate setup ledger: [`evidence/{report['run_id']}/setup-accounting.json`](evidence/{report['run_id']}/setup-accounting.json)
+
+Qualification failure categories: `{failures}`
+
+## Disposition
+
+**Inconclusive.** The exact candidate-boundary qualification failed after its durable attempt marker. Q1/L4 cannot execute or retry from this contract.
+
+## Effect on Q1
+
+Q1 gains a reproducible harness finding but no task-cost observation. The failed qualification is not evidence that the frozen workload itself passes or fails.
+
+## Possible next loops
+
+None authorized. The evidence returns to broad human review; this result selects no next inquiry.
+
+## Promotion candidate
+
+None. Qualification, loop success, and promotion remain separate human decisions.
+"""
+
+
+def _close_failed_boundary_qualification(
+    root: Path,
+    report: dict[str, Any],
 ) -> None:
-    """Require the one-shot Q1/L3 setup receipt before measured execution."""
+    run_id = cast(str, report["run_id"])
+    terminal_evidence = EVIDENCE_ROOT / run_id
+    if terminal_evidence.exists() or terminal_evidence.is_symlink():
+        raise RuntimeError("qualification terminal evidence already exists")
+    EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    os.replace(root, terminal_evidence)
+    result = terminal_evidence / "terminal-RESULT.md"
+    if result.is_symlink() or not result.is_file():
+        raise RuntimeError("qualification terminal result is missing")
+    _atomic_write_new(RESULT_PATH, result.read_bytes())
+    _assert_public_safe_terminal(terminal_evidence, RESULT_PATH)
+
+
+def qualify_candidate_boundary(expected_commit: str, root: Path) -> int:
+    """Run the exact candidate provisioner and close its setup evidence."""
 
     expected_commit = _validate_contract_commit(expected_commit)
     root = _qualification_path(root)
-    receipt_path = root / "receipt.json"
-    commands_path = root / "commands.jsonl"
+    report_path = root / QUALIFICATION_REPORT_NAME
+    if root.exists() or root.is_symlink():
+        raise RuntimeError("candidate-boundary qualification was already attempted")
+    _checkout_guard(expected_commit)
+    lock_descriptor = _acquire_execution_lock()
+    try:
+        _assert_no_orphaned_run()
+        if RESULT_PATH.exists():
+            raise RuntimeError(f"{ACTIVE_LOOP.loop_id} already has RESULT.md")
+        run_id = _run_id()
+        instance = _instance_name(run_id)
+        started_wall = _utc_now()
+        started_monotonic = time.monotonic()
+        recorder = Recorder(root)
+        _write_json(
+            report_path,
+            {
+                "contract_commit": expected_commit,
+                "instance": instance,
+                "loop_id": ACTIVE_LOOP.loop_id,
+                "run_id": run_id,
+                "schema_version": 1,
+                "started_at": _timestamp(started_wall),
+                "status": "Running",
+            },
+        )
+        failures: list[str] = []
+        interrupted: BaseException | None = None
+        boundary_validated = False
+        try:
+            _provision_candidate(recorder, root, instance)
+            _validate_candidate_boundary_report(
+                _read_bounded_json(
+                    root / "boundary-validation.json",
+                    maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+                )
+            )
+            boundary_validated = True
+        except BaseException as exc:
+            interrupted = exc
+            failures.append("candidate_boundary_validation")
+        cleanup_completed = False
+        try:
+            cleanup_failures = _cleanup_candidate(recorder, instance, False)
+            cleanup_completed = not cleanup_failures
+        except BaseException as exc:
+            cleanup_failures = [f"candidate cleanup raised {type(exc).__name__}"]
+            if interrupted is None:
+                interrupted = exc
+        if cleanup_failures:
+            failures.append("candidate_cleanup")
+        command_sequence_validated = False
+        try:
+            _validate_candidate_boundary_commands(root, instance)
+            command_sequence_validated = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("candidate_boundary_commands")
+        residue_clean = False
+        try:
+            _assert_no_orphaned_run()
+            residue_clean = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("post_qualification_residue")
+        source_unchanged = False
+        try:
+            _checkout_guard(expected_commit)
+            source_unchanged = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("reviewed_source_changed")
+        redactions_recorded = False
+        try:
+            _write_json(root / "redactions.json", recorder.redactions)
+            redactions_recorded = True
+        except (OSError, ValueError, RuntimeError):
+            failures.append("qualification_redactions")
+        if any(
+            path.is_symlink() or not path.is_file()
+            for path in (
+                root / "commands.jsonl",
+                root / "boundary-validation.json",
+                root / "redactions.json",
+            )
+        ):
+            failures.append("qualification_evidence")
+        finished_wall = _utc_now()
+        duration_seconds = time.monotonic() - started_monotonic
+        try:
+            _write_json(
+                root / "setup-accounting.json",
+                _qualification_accounting(root, duration_seconds),
+            )
+        except (OSError, ValueError, RuntimeError):
+            failures.append("qualification_accounting")
+        postconditions = {
+            "boundary_validated": boundary_validated,
+            "candidate_absent_and_evaluator_residue_zero": residue_clean,
+            "candidate_cleanup_completed": cleanup_completed,
+            "command_sequence_validated": command_sequence_validated,
+            "redactions_recorded": redactions_recorded,
+            "reviewed_source_unchanged": source_unchanged,
+        }
+        passed = (
+            not failures
+            and interrupted is None
+            and all(postconditions.values())
+        )
+        report = {
+            "contract_commit": expected_commit,
+            "disposition": None if passed else "Inconclusive",
+            "duration_seconds": duration_seconds,
+            "failure_categories": failures,
+            "finished_at": _timestamp(finished_wall),
+            "instance": instance,
+            "loop_id": ACTIVE_LOOP.loop_id,
+            "postconditions": postconditions,
+            "redaction_count": len(recorder.redactions),
+            "run_id": run_id,
+            "schema_version": 1,
+            "started_at": _timestamp(started_wall),
+            "status": "Passed" if passed else "Failed",
+        }
+        _write_json(report_path, report)
+        if not passed:
+            _atomic_write_new(
+                root / "terminal-RESULT.md",
+                _render_failed_qualification_result(report).encode("utf-8"),
+            )
+        _assert_public_safe_terminal(root, report_path)
+        _write_json(
+            root / QUALIFICATION_INDEX_NAME,
+            _evidence_index(
+                root,
+                index_name=QUALIFICATION_INDEX_NAME,
+                version=1,
+            ),
+            reserve_closure=False,
+        )
+        _write_completion_receipt(
+            root,
+            kind="qualification",
+            run_id=run_id,
+            contract_commit=expected_commit,
+        )
+        _verify_inventory(
+            root,
+            index_name=QUALIFICATION_INDEX_NAME,
+            version=1,
+            allowed_extra_paths={QUALIFICATION_COMPLETION_NAME},
+        )
+        _validate_completion_receipt(
+            root,
+            kind="qualification",
+            run_id=run_id,
+            contract_commit=expected_commit,
+        )
+        _assert_public_safe_terminal(root, report_path)
+        if not passed:
+            _close_failed_boundary_qualification(root, report)
+            print(json.dumps({"run_id": run_id, "status": "Inconclusive"}, sort_keys=True))
+            return 2
+        print(json.dumps(report, sort_keys=True))
+        return 0
+    finally:
+        os.close(lock_descriptor)
+
+
+def require_candidate_boundary_qualification(
+    root: Path,
+    expected_commit: str,
+) -> None:
+    """Require a closed, passing qualification of the measured provisioner."""
+
+    expected_commit = _validate_contract_commit(expected_commit)
+    root = _qualification_path(root)
+    report_path = root / QUALIFICATION_REPORT_NAME
     if root.is_symlink() or not root.is_dir():
-        raise RuntimeError("candidate-creation qualification receipt is missing")
-    if receipt_path.is_symlink() or commands_path.is_symlink():
-        raise RuntimeError("candidate-creation qualification contains a symlink")
-    receipt = _read_bounded_json(
-        receipt_path,
+        raise RuntimeError("candidate-boundary qualification is missing")
+    required_paths = (
+        report_path,
+        root / "commands.jsonl",
+        root / "boundary-validation.json",
+        root / "redactions.json",
+        root / "setup-accounting.json",
+        root / QUALIFICATION_INDEX_NAME,
+        root / QUALIFICATION_COMPLETION_NAME,
+    )
+    if any(path.is_symlink() or not path.is_file() for path in required_paths):
+        raise RuntimeError("candidate-boundary qualification report is missing")
+    report = _read_bounded_json(
+        report_path,
         maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
     )
     required = {
-        "commands_sha256",
         "contract_commit",
-        "create",
-        "created_status",
+        "disposition",
         "duration_seconds",
         "failure_categories",
         "finished_at",
@@ -7085,52 +7314,86 @@ def require_candidate_creation_qualification(
         "loop_id",
         "postconditions",
         "redaction_count",
+        "run_id",
         "schema_version",
         "started_at",
         "status",
     }
     if (
-        not isinstance(receipt, dict)
-        or set(receipt) != required
-        or receipt.get("schema_version") != 1
-        or receipt.get("loop_id") != ACTIVE_LOOP.loop_id
-        or receipt.get("contract_commit") != expected_commit
-        or receipt.get("status") != "Passed"
-        or receipt.get("failure_categories") != []
-        or receipt.get("postconditions")
+        not isinstance(report, dict)
+        or set(report) != required
+        or report.get("schema_version") != 1
+        or report.get("loop_id") != ACTIVE_LOOP.loop_id
+        or report.get("contract_commit") != expected_commit
+        or report.get("disposition") is not None
+        or report.get("status") != "Passed"
+        or report.get("failure_categories") != []
+        or report.get("postconditions")
         != {
+            "boundary_validated": True,
             "candidate_absent_and_evaluator_residue_zero": True,
-            "created_without_starting": True,
+            "candidate_cleanup_completed": True,
+            "command_sequence_validated": True,
+            "redactions_recorded": True,
             "reviewed_source_unchanged": True,
         }
-        or receipt.get("created_status") != "Stopped"
-        or not isinstance(receipt.get("create"), dict)
-        or set(receipt["create"])
-        != {"duration_seconds", "limit_breach", "return_code", "timed_out"}
-        or receipt["create"].get("return_code") != 0
-        or receipt["create"].get("timed_out") is not False
-        or receipt["create"].get("limit_breach") is not None
-        or not isinstance(receipt["create"].get("duration_seconds"), (int, float))
-        or isinstance(receipt["create"].get("duration_seconds"), bool)
-        or not math.isfinite(receipt["create"]["duration_seconds"])
-        or receipt["create"]["duration_seconds"] < 0
-        or not isinstance(receipt.get("duration_seconds"), (int, float))
-        or isinstance(receipt.get("duration_seconds"), bool)
-        or not math.isfinite(receipt["duration_seconds"])
-        or receipt["duration_seconds"] < 0
-        or not isinstance(receipt.get("redaction_count"), int)
-        or isinstance(receipt.get("redaction_count"), bool)
-        or receipt["redaction_count"] < 0
-        or not isinstance(receipt.get("instance"), str)
-        or INSTANCE_PATTERN.fullmatch(receipt["instance"]) is None
-        or not isinstance(receipt.get("commands_sha256"), str)
-        or re.fullmatch(r"[0-9a-f]{64}", receipt["commands_sha256"]) is None
+        or not isinstance(report.get("redaction_count"), int)
+        or isinstance(report.get("redaction_count"), bool)
+        or report["redaction_count"] < 0
+        or not isinstance(report.get("duration_seconds"), (int, float))
+        or isinstance(report.get("duration_seconds"), bool)
+        or not math.isfinite(report["duration_seconds"])
+        or report["duration_seconds"] < 0
+        or not isinstance(report.get("started_at"), str)
+        or not isinstance(report.get("finished_at"), str)
+        or not isinstance(report.get("run_id"), str)
+        or RUN_ID_PATTERN.fullmatch(report["run_id"]) is None
+        or not isinstance(report.get("instance"), str)
+        or report["instance"] != _instance_name(report["run_id"])
     ):
-        raise RuntimeError("candidate-creation qualification did not pass this contract")
-    if not commands_path.is_file() or _sha256(commands_path) != receipt["commands_sha256"]:
-        raise RuntimeError("candidate-creation qualification command record changed")
-    _assert_public_safe_terminal(root, receipt_path)
-    _validate_candidate_qualification_commands(root, receipt)
+        raise RuntimeError("candidate-boundary qualification did not pass this contract")
+    _validate_completion_receipt(
+        root,
+        kind="qualification",
+        run_id=report["run_id"],
+        contract_commit=expected_commit,
+    )
+    _verify_inventory(
+        root,
+        index_name=QUALIFICATION_INDEX_NAME,
+        version=1,
+        allowed_extra_paths={QUALIFICATION_COMPLETION_NAME},
+    )
+    redactions = _read_bounded_json(
+        root / "redactions.json",
+        maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+    )
+    if not isinstance(redactions, list) or len(redactions) != report["redaction_count"]:
+        raise RuntimeError("candidate-boundary redaction record is invalid")
+    accounting = _read_bounded_json(
+        root / "setup-accounting.json",
+        maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+    )
+    if (
+        not isinstance(accounting, dict)
+        or accounting.get("schema_version") != 1
+        or accounting.get("task_measurement_started") is not False
+        or not isinstance(accounting.get("agent"), dict)
+        or accounting["agent"].get("invocations") != 0
+        or accounting["agent"].get("model_cost") != 0
+        or not isinstance(accounting.get("evaluator"), dict)
+        or accounting["evaluator"].get("acceptance_workload_seconds") != 0
+        or not isinstance(accounting.get("wall"), dict)
+        or accounting["wall"].get("task_elapsed_seconds") != 0
+    ):
+        raise RuntimeError("candidate-boundary setup accounting is invalid")
+    _validate_candidate_boundary_commands(root, report["instance"])
+    boundary = _read_bounded_json(
+        root / "boundary-validation.json",
+        maximum_bytes=CONTROL_DOCUMENT_MAX_BYTES,
+    )
+    _validate_candidate_boundary_report(boundary)
+    _assert_public_safe_terminal(root, report_path)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -7142,6 +7405,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("plan", help="print the approved sequence without changing state")
+    if LOOP_CANDIDATE_QUALIFICATION_ROOT is not None:
+        qualify_parser = subparsers.add_parser(
+            "qualify",
+            help="qualify the exact candidate boundary outside task-cost measurement",
+        )
+        qualify_parser.add_argument("--contract-commit", required=True)
     execute_parser = subparsers.add_parser(
         "execute", help="execute through the human source-review boundary"
     )
@@ -7158,6 +7427,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "plan":
             return plan()
+        if args.command == "qualify":
+            if LOOP_CANDIDATE_QUALIFICATION_ROOT is None:
+                raise RuntimeError("active loop has no candidate-boundary qualification")
+            return qualify_candidate_boundary(
+                args.contract_commit,
+                LOOP_CANDIDATE_QUALIFICATION_ROOT,
+            )
         if args.command == "execute":
             return execute(args.contract_commit)
         return finalize(args.run_id, args.attestation, args.contract_commit)

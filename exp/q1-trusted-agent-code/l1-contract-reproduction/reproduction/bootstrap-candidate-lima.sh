@@ -55,5 +55,3 @@ sudo chmod -R a-w \
   "${candidate_root}/.codex" \
   "${candidate_root}/.venv" \
   "${candidate_root}/public/contract"
-
-findmnt --json

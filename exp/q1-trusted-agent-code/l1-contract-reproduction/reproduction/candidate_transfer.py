@@ -32,6 +32,8 @@ UNSAFE_PUBLIC_PATH_PATTERNS = (
     re.compile(r"\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b"),
     re.compile(r"(?i:authorization\s*:\s*bearer\s+)[A-Za-z0-9._~+/=-]{12,}"),
 )
+FORBIDDEN_CONTROL_PARTS = frozenset({".agents", ".codex"})
+FORBIDDEN_CONTROL_NAMES = frozenset({"AGENTS.md", "AGENTS.override.md"})
 
 
 class TransferError(RuntimeError):
@@ -148,6 +150,10 @@ def _open_owned_regular(
 
 
 def _validate_path_envelope(relative: PurePosixPath) -> None:
+    if relative.name in FORBIDDEN_CONTROL_NAMES or any(
+        part in FORBIDDEN_CONTROL_PARTS for part in relative.parts
+    ):
+        raise TransferError(f"candidate source contains a control path: {relative}")
     if len(relative.parts) > MAX_PATH_DEPTH:
         raise TransferError(f"candidate path exceeds maximum depth: {relative}")
     try:

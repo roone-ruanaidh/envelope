@@ -26,8 +26,8 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 L2_ROOT = ROOT.parent / "l2-contract-reproduction"
 L2_RUNNER = L2_ROOT / "reproduction" / "run_l2.py"
-L3_ROOT = ROOT.parent / "l3-contract-reproduction"
-L3_RUNNER = L3_ROOT / "reproduction" / "run_l3.py"
+L4_ROOT = ROOT.parent / "l4-contract-reproduction"
+L4_RUNNER = L4_ROOT / "reproduction" / "run_l4.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -42,16 +42,16 @@ DERIVED_LOOPS = (
         "qualification": None,
     },
     {
-        "id": "Q1/L3",
-        "intervention": "parent_bounded_stream_capture",
+        "id": "Q1/L4",
+        "intervention": "qualified_candidate_boundary",
         "prior": {
-            "loop_id": "Q1/L2",
-            "result_commit": "de0d74a7effaa065cdd400519af17cf0fc859e61",
-            "run_id": "20260721T071826Z-10ec801b",
+            "loop_id": "Q1/L3",
+            "result_commit": "42b4c48880bc98358dbad84e3b71e7d06b416211",
+            "run_id": "20260721T153644Z-b31c1649",
         },
-        "root": L3_ROOT,
-        "runner": L3_RUNNER,
-        "qualification": L3_ROOT / "build" / "candidate-creation-qualification",
+        "root": L4_ROOT,
+        "runner": L4_RUNNER,
+        "qualification": L4_ROOT / "build" / "candidate-boundary-qualification",
     },
 )
 sys.path.insert(0, str(ROOT / "reproduction"))
@@ -134,6 +134,26 @@ class CandidateTransferTests(unittest.TestCase):
             (root / name).write_text("pass\n", encoding="utf-8")
             manifest = candidate_transfer.build_manifest(root)
             self.assertEqual([record["path"] for record in manifest["files"]], [name])
+
+    def test_rejects_candidate_control_paths(self) -> None:
+        for relative in (
+            Path("AGENTS.md"),
+            Path("AGENTS.override.md"),
+            Path("nested/AGENTS.md"),
+            Path("nested/AGENTS.override.md"),
+            Path(".agents/skills/example/SKILL.md"),
+            Path("nested/.codex/config.toml"),
+        ):
+            with self.subTest(path=relative), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("control\n", encoding="utf-8")
+                with self.assertRaisesRegex(
+                    candidate_transfer.TransferError,
+                    "control path",
+                ):
+                    candidate_transfer.build_manifest(root)
 
     def test_quiescence_accumulates_and_resignals_new_candidate_processes(self) -> None:
         signals: list[tuple[set[int], int]] = []
@@ -575,8 +595,13 @@ class CandidateBoundaryReportTests(unittest.TestCase):
             "codex-cli 0.144.6",
         )
         self.assertEqual(report["provenance"]["candidate_runtime"]["python_version"], "3.14.4")
+        self.assertEqual(report["schema_version"], 2)
+        self.assertIsNone(report["failure_phase"])
+        self.assertEqual(report["probe_process"]["return_code"], 0)
+        self.assertEqual(report["probe_process"]["stderr"]["text"], "not recorded")
+        self.assertFalse(report["probe_process"]["stderr"]["truncated"])
         encoded = json.dumps(report)
-        self.assertNotIn("not recorded", encoded)
+        self.assertIn("not recorded", encoded)
         self.assertNotIn(str(ROOT), encoded)
 
     def test_probe_schema_or_result_change_fails_closed(self) -> None:
@@ -615,7 +640,86 @@ class CandidateBoundaryReportTests(unittest.TestCase):
             report = verify_candidate_boundary.verify("q1-l1-test")
         self.assertFalse(report["passed"])
         self.assertEqual(report["failure"], "installed_authority_mismatch")
+        self.assertEqual(report["failure_phase"], "installed_authority")
+        self.assertIsNone(report["probe_process"])
         run_lima.assert_called_once()
+
+    def test_failed_probe_retains_bounded_public_safe_process_evidence(self) -> None:
+        authority = {
+            name: "a" * 64 for name in verify_candidate_boundary.AUTHORITY_FILES
+        }
+        installed = "\n".join(
+            f"{'a' * 64}  "
+            + (
+                "/home/lima/candidate/.boundary_probe.py"
+                if path == "candidate_boundary_probe.py"
+                else path
+            )
+            for path in verify_candidate_boundary.INSTALLED_AUTHORITIES
+        )
+        runtime = json.dumps(
+            {
+                "packages": [
+                    *[list(item) for item in verify_candidate_boundary._required_packages().items()],
+                    ["pip", "25.3"],
+                ],
+                "python_sha256": "b" * 64,
+                "python_version": "3.14.4",
+            }
+        )
+        secret = "sk-proj-" + "x" * 30
+        diagnostic = (
+            str(verify_candidate_boundary.HOST_REPOSITORY)
+            + " "
+            + str(verify_candidate_boundary.HOST_HOME)
+            + " "
+            + f"/home/{verify_candidate_boundary.HOST_HOME.name}"
+            + " "
+            + secret
+            + " "
+            + "z" * (verify_candidate_boundary.PROBE_STREAM_RETENTION_BYTES + 100)
+        )
+        results = (
+            subprocess.CompletedProcess([], 0, installed + "\n", ""),
+            subprocess.CompletedProcess([], 0, runtime + "\n", ""),
+            subprocess.CompletedProcess([], -9, "", diagnostic),
+        )
+        with (
+            patch.object(verify_candidate_boundary, "_authority_hashes", return_value=authority),
+            patch.object(verify_candidate_boundary, "_run_lima", side_effect=results),
+            patch.dict(os.environ, {"OPENAI_API_KEY": secret}),
+        ):
+            report = verify_candidate_boundary.verify("q1-l1-test")
+        self.assertFalse(report["passed"])
+        self.assertEqual(report["failure"], "probe_command_failed")
+        self.assertEqual(report["failure_phase"], "candidate_boundary_probe")
+        process = report["probe_process"]
+        self.assertEqual(process["return_code"], -9)
+        self.assertTrue(process["stderr"]["truncated"])
+        self.assertLessEqual(
+            len(process["stderr"]["text"].encode("utf-8")),
+            verify_candidate_boundary.PROBE_STREAM_RETENTION_BYTES,
+        )
+        encoded = json.dumps(process)
+        self.assertNotIn(secret, encoded)
+        self.assertNotIn(str(verify_candidate_boundary.HOST_REPOSITORY), encoded)
+        self.assertNotIn(str(verify_candidate_boundary.HOST_HOME), encoded)
+        self.assertEqual(
+            {record["item"] for record in process["stderr"]["redactions"]},
+            {"CANDIDATE_HOME", "HOST_HOME", "HOST_REPOSITORY", "OPENAI_API_KEY"},
+        )
+
+    def test_probe_diagnostics_do_not_change_acceptance(self) -> None:
+        valid = json.dumps(verify_candidate_boundary.EXPECTED_PROBE)
+        process = subprocess.CompletedProcess([], 1, valid, "diagnostic")
+        self.assertEqual(
+            verify_candidate_boundary._probe_process(process)["stderr"]["text"],
+            "diagnostic",
+        )
+        self.assertEqual(
+            verify_candidate_boundary._probe_result(valid),
+            (verify_candidate_boundary.EXPECTED_PROBE, None),
+        )
 
 
 class ContractMechanicsTests(unittest.TestCase):
@@ -705,6 +809,12 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertEqual(requirements["default_permissions"], "q1_l1")
         self.assertEqual(requirements["allowed_permission_profiles"], {"q1_l1": True})
         self.assertFalse(requirements["permissions"]["q1_l1"]["network"]["enabled"])
+        profile = requirements["permissions"]["q1_l1"]
+        self.assertNotIn("extends", profile)
+        workspace = profile["filesystem"][":workspace_roots"]
+        self.assertNotIn(".agents", workspace)
+        self.assertNotIn("**/AGENTS.md", workspace)
+        self.assertEqual(workspace["AGENTS.md"], "read")
         for feature in ("apps", "multi_agent", "plugins", "remote_plugin"):
             with self.subTest(feature=feature):
                 self.assertFalse(requirements["features"][feature])
@@ -725,6 +835,10 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertEqual(config["model_reasoning_effort"], "max")
         self.assertEqual(config["model_reasoning_effort"], run_l1.REASONING_EFFORT)
         self.assertEqual(
+            run_l1.EXPECTED_CANDIDATE_BOUNDARY,
+            verify_candidate_boundary.EXPECTED_PROBE,
+        )
+        self.assertEqual(
             config["shell_environment_policy"]["set"]["PYTHONDONTWRITEBYTECODE"],
             "1",
         )
@@ -733,6 +847,7 @@ class ContractMechanicsTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("@openai/codex@0.144.6", bootstrap)
         self.assertIn('codex-cli 0.144.6', bootstrap)
+        self.assertNotIn("findmnt --json", bootstrap)
         self.assertEqual(run_l1.CODEX_VERSION, "codex-cli 0.144.6")
         loop = (ROOT / "LOOP.md").read_text(encoding="utf-8")
         self.assertIn("`codex-cli 0.144.6`", loop)
@@ -742,6 +857,15 @@ class ContractMechanicsTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn('sudo rmdir "$HOME/candidate/.codex"', prepare)
+        self.assertLess(
+            prepare.index('sudo rmdir "$HOME/candidate/.codex"'),
+            prepare.index("verify_candidate_boundary.py"),
+        )
+        boundary_probe = (
+            ROOT / "reproduction" / "candidate_boundary_probe.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"create Codex control directory"', boundary_probe)
+        self.assertIn('(workspace / ".codex").mkdir()', boundary_probe)
 
     def test_runner_imports_no_repository_module_before_the_checkout_guard(self) -> None:
         self.assertFalse(RUN_L1_IMPORTED_CANDIDATE_TRANSFER)
@@ -1095,7 +1219,7 @@ class ContractMechanicsTests(unittest.TestCase):
                     }
                     if case["qualification"] is not None:
                         expected_context["setup"] = {
-                            "candidate_creation_qualification": {
+                            "candidate_boundary_qualification": {
                                 "included_in_evidence": True,
                                 "measured_as_task_cost": False,
                             }
@@ -1122,9 +1246,15 @@ class ContractMechanicsTests(unittest.TestCase):
                             (qualification / "commands.jsonl").write_text(
                                 "{}\n", encoding="utf-8"
                             )
-                            (qualification / "receipt.json").write_text(
-                                "{}\n", encoding="utf-8"
-                            )
+                            for name in (
+                                "boundary-validation.json",
+                                "redactions.json",
+                                "setup-accounting.json",
+                                run_l1.QUALIFICATION_REPORT_NAME,
+                                run_l1.QUALIFICATION_INDEX_NAME,
+                                run_l1.QUALIFICATION_COMPLETION_NAME,
+                            ):
+                                (qualification / name).write_text("{}\n", encoding="utf-8")
                             (qualification / "logs" / "probe.stdout").write_text(
                                 "ok\n", encoding="utf-8"
                             )
@@ -1155,9 +1285,12 @@ class ContractMechanicsTests(unittest.TestCase):
                         if qualification is not None:
                             self.assertTrue(
                                 {
-                                    "setup/candidate-creation-qualification/commands.jsonl",
-                                    "setup/candidate-creation-qualification/receipt.json",
-                                    "setup/candidate-creation-qualification/logs/probe.stdout",
+                                    "setup/candidate-boundary-qualification/commands.jsonl",
+                                    "setup/candidate-boundary-qualification/qualification.json",
+                                    "setup/candidate-boundary-qualification/boundary-validation.json",
+                                    "setup/candidate-boundary-qualification/redactions.json",
+                                    "setup/candidate-boundary-qualification/setup-accounting.json",
+                                    "setup/candidate-boundary-qualification/logs/probe.stdout",
                                 }.issubset(required)
                             )
                         self.assertEqual(
@@ -1200,144 +1333,300 @@ class ContractMechanicsTests(unittest.TestCase):
                 finally:
                     run_l1.configure_loop(run_l1.DEFAULT_LOOP)
 
-    def test_candidate_creation_qualification_receipt_is_bound_to_its_commands(self) -> None:
+    def test_candidate_boundary_qualification_reuses_measured_provisioner(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            loop_root = Path(temporary) / "l3-contract-reproduction"
-            qualification_root = (
-                loop_root / "build" / "candidate-creation-qualification"
-            )
-            logs = qualification_root / "logs"
-            logs.mkdir(parents=True)
-            instance = "q1-l1-candidate-20260101t000000z-deadbeef"
-            candidate_yaml = (
-                f"{run_l1.REDACTED_HOST_REPOSITORY}/"
-                + (run_l1.REPRODUCTION / "candidate-lima.yaml")
-                .relative_to(run_l1.REPOSITORY_ROOT)
-                .as_posix()
-            )
-            specifications = (
-                (
-                    "qualify candidate disk creation",
-                    [
-                        "limactl",
-                        "create",
-                        "--name",
-                        instance,
-                        "--tty=false",
-                        candidate_yaml,
-                    ],
-                    "",
-                ),
-                (
-                    "verify qualified candidate disk",
-                    ["limactl", "list", "--json"],
-                    json.dumps({"name": "q1-l1-evaluator", "status": "Running"})
-                    + "\n"
-                    + json.dumps({"name": instance, "status": "Stopped"})
-                    + "\n",
-                ),
-                (
-                    "inspect candidate VM before teardown",
-                    ["limactl", "list", "--json"],
-                    json.dumps({"name": "q1-l1-evaluator"})
-                    + "\n"
-                    + json.dumps({"name": instance})
-                    + "\n",
-                ),
-                (
-                    "delete candidate VM",
-                    ["limactl", "delete", "--force", instance],
-                    "",
-                ),
-                (
-                    "verify candidate VM teardown",
-                    ["limactl", "list", "--json"],
-                    json.dumps({"name": "q1-l1-evaluator"}) + "\n",
-                ),
-            )
-            records = []
-            for sequence, (label, argv, stdout) in enumerate(specifications, start=1):
-                safe_label = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
-                stdout_path = f"logs/{sequence:03d}-{safe_label}.stdout"
-                stderr_path = f"logs/{sequence:03d}-{safe_label}.stderr"
-                (qualification_root / stdout_path).write_text(stdout, encoding="utf-8")
-                (qualification_root / stderr_path).write_text("", encoding="utf-8")
-                records.append(
-                    {
-                        "argv": argv,
-                        "category": "machine",
-                        "duration_seconds": float(sequence),
-                        "finished_at": "2026-01-01T00:00:01+00:00",
-                        "kind": "command",
-                        "label": label,
-                        "limit_breach": None,
-                        "resources": ["trusted_machine"],
-                        "return_code": 0,
-                        "sequence": sequence,
-                        "started_at": "2026-01-01T00:00:00+00:00",
-                        "stderr_path": stderr_path,
-                        "stdout_path": stdout_path,
-                        "timed_out": False,
-                    }
+            loop_root = Path(temporary) / "l4-contract-reproduction"
+            qualification_root = loop_root / "build" / "candidate-boundary-qualification"
+            events: list[tuple[str, object]] = []
+
+            def provision(
+                _recorder: run_l1.Recorder,
+                evidence: Path,
+                instance: str,
+            ) -> None:
+                events.append(("provision", instance))
+                authority = verify_candidate_boundary._authority_hashes()
+                installed = {
+                    name: authority[name]
+                    for name in verify_candidate_boundary.INSTALLED_AUTHORITIES.values()
+                }
+                required = verify_candidate_boundary._required_packages()
+                run_l1._write_json(
+                    evidence / "boundary-validation.json",
+                    verify_candidate_boundary._report(
+                        authority,
+                        lima_authority=verify_candidate_boundary._lima_authority(),
+                        failure=None,
+                        failure_phase=None,
+                        installed_hashes=installed,
+                        candidate_runtime={
+                            "packages": {**required, "pip": "25.3"},
+                            "python_sha256": "b" * 64,
+                            "python_version": "3.14.4",
+                        },
+                        probe=verify_candidate_boundary.EXPECTED_PROBE.copy(),
+                        probe_process={
+                            "encoding": "utf-8-backslashreplace",
+                            "retention_limit_bytes": 4096,
+                            "return_code": 0,
+                            "stderr": {
+                                "redactions": [],
+                                "text": "",
+                                "truncated": False,
+                            },
+                            "stdout": {
+                                "redactions": [],
+                                "text": json.dumps(
+                                    verify_candidate_boundary.EXPECTED_PROBE
+                                ),
+                                "truncated": False,
+                            },
+                        },
+                    ),
                 )
-            commands = qualification_root / "commands.jsonl"
-            commands.write_text(
-                "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
-                encoding="utf-8",
+
+            def cleanup(
+                recorder: run_l1.Recorder,
+                instance: str,
+                login_attempted: bool,
+            ) -> list[str]:
+                events.append(("cleanup", (instance, login_attempted)))
+                prepare = (
+                    f"{run_l1.REDACTED_HOST_REPOSITORY}/"
+                    + (run_l1.REPRODUCTION / "prepare-candidate-lima.sh")
+                    .relative_to(run_l1.REPOSITORY_ROOT)
+                    .as_posix()
+                )
+                specifications = (
+                    (
+                        "provision and probe candidate VM",
+                        [prepare, instance],
+                        "",
+                    ),
+                    (
+                        "inspect candidate VM before teardown",
+                        ["limactl", "list", "--json"],
+                        json.dumps({"name": run_l1.EVALUATOR_INSTANCE})
+                        + "\n"
+                        + json.dumps({"name": instance})
+                        + "\n",
+                    ),
+                    (
+                        "delete candidate VM",
+                        ["limactl", "delete", "--force", instance],
+                        "",
+                    ),
+                    (
+                        "verify candidate VM teardown",
+                        ["limactl", "list", "--json"],
+                        json.dumps({"name": run_l1.EVALUATOR_INSTANCE}) + "\n",
+                    ),
+                )
+                records = []
+                for sequence, (label, argv, stdout) in enumerate(specifications, start=1):
+                    stdout_path = f"logs/{sequence:03d}.stdout"
+                    stderr_path = f"logs/{sequence:03d}.stderr"
+                    (recorder.evidence / stdout_path).write_text(stdout, encoding="utf-8")
+                    (recorder.evidence / stderr_path).write_text("", encoding="utf-8")
+                    records.append(
+                        {
+                            "argv": argv,
+                            "category": "machine",
+                            "duration_seconds": 1.0,
+                            "finished_at": "2026-01-01T00:00:01+00:00",
+                            "kind": "command",
+                            "label": label,
+                            "limit_breach": None,
+                            "resources": ["trusted_machine"],
+                            "return_code": 0,
+                            "sequence": sequence,
+                            "started_at": "2026-01-01T00:00:00+00:00",
+                            "stderr_path": stderr_path,
+                            "stdout_path": stdout_path,
+                            "timed_out": False,
+                        }
+                    )
+                (recorder.evidence / "commands.jsonl").write_text(
+                    "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+                    encoding="utf-8",
+                )
+                return []
+
+            active = run_l1.LoopContext(
+                loop_id="Q1/L4",
+                root=loop_root,
+                intervention="qualified_candidate_boundary",
             )
-            receipt = {
-                "commands_sha256": run_l1._sha256(commands),
-                "contract_commit": "a" * 40,
-                "create": {
-                    "duration_seconds": 1.0,
-                    "limit_breach": None,
-                    "return_code": 0,
-                    "timed_out": False,
-                },
-                "created_status": "Stopped",
-                "duration_seconds": 2.0,
-                "failure_categories": [],
-                "finished_at": "2026-01-01T00:00:02+00:00",
-                "instance": instance,
-                "loop_id": "Q1/L3",
-                "postconditions": {
-                    "candidate_absent_and_evaluator_residue_zero": True,
-                    "created_without_starting": True,
-                    "reviewed_source_unchanged": True,
-                },
-                "redaction_count": 0,
-                "schema_version": 1,
-                "started_at": "2026-01-01T00:00:00+00:00",
-                "status": "Passed",
-            }
-            run_l1._write_json(qualification_root / "receipt.json", receipt)
+            with (
+                patch.object(run_l1, "LOOP_ROOT", loop_root),
+                patch.object(run_l1, "ACTIVE_LOOP", active),
+                patch.object(run_l1, "RESULT_PATH", loop_root / "RESULT.md"),
+                patch.object(run_l1, "_checkout_guard"),
+                patch.object(run_l1, "_assert_no_orphaned_run"),
+                patch.object(
+                    run_l1,
+                    "_acquire_execution_lock",
+                    side_effect=lambda: os.open(os.devnull, os.O_RDONLY),
+                ),
+                patch.object(
+                    run_l1,
+                    "_run_id",
+                    return_value="20260101T000000Z-deadbeef",
+                ),
+                patch.object(run_l1, "_provision_candidate", side_effect=provision),
+                patch.object(run_l1, "_cleanup_candidate", side_effect=cleanup),
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(
+                    run_l1.qualify_candidate_boundary("a" * 40, qualification_root),
+                    0,
+                )
+                run_l1.require_candidate_boundary_qualification(
+                    qualification_root,
+                    "a" * 40,
+                )
+                invalid_boundary = json.loads(
+                    (qualification_root / "boundary-validation.json").read_text()
+                )
+                invalid_boundary["probe"] = {}
+                with self.assertRaisesRegex(ValueError, "did not pass"):
+                    run_l1._validate_candidate_boundary_report(invalid_boundary)
+                original_commands = (qualification_root / "commands.jsonl").read_text()
+                (qualification_root / "commands.jsonl").write_text("{}\n")
+                with self.assertRaisesRegex(ValueError, "command sequence"):
+                    run_l1._validate_candidate_boundary_commands(
+                        qualification_root,
+                        "q1-l1-candidate-20260101t000000z-deadbeef",
+                    )
+                (qualification_root / "commands.jsonl").write_text(original_commands)
+                command_records = [
+                    json.loads(line) for line in original_commands.splitlines()
+                ]
+                command_records[0]["stdout_path"] = "logs/../outside.stdout"
+                (qualification_root / "commands.jsonl").write_text(
+                    "".join(
+                        json.dumps(record, sort_keys=True) + "\n"
+                        for record in command_records
+                    )
+                )
+                with self.assertRaisesRegex(ValueError, "command stream"):
+                    run_l1._validate_candidate_boundary_commands(
+                        qualification_root,
+                        "q1-l1-candidate-20260101t000000z-deadbeef",
+                    )
+                (qualification_root / "commands.jsonl").write_text(original_commands)
+                with self.assertRaisesRegex(RuntimeError, "did not pass this contract"):
+                    run_l1.require_candidate_boundary_qualification(
+                        qualification_root,
+                        "b" * 40,
+                    )
+                (qualification_root / "boundary-validation.json").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+                with self.assertRaisesRegex(ValueError, "indexed evidence changed"):
+                    run_l1.require_candidate_boundary_qualification(
+                        qualification_root,
+                        "a" * 40,
+                    )
+            self.assertEqual(events[0][0], "provision")
+            self.assertEqual(events[1][0], "cleanup")
+            self.assertFalse(events[1][1][1])
+
+    def test_measured_provisioner_copies_into_qualification_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "workload"
+            source = root / "build" / "candidate-boundary-validation.json"
+            run_l1._write_json(source, {"passed": True})
+            qualification = Path(temporary) / "candidate-boundary-qualification"
+            qualification.mkdir()
+            recorder = Mock()
+            recorder.run.return_value = run_l1.CommandResult(
+                sequence=1,
+                label="provision and probe candidate VM",
+                category="machine",
+                argv=["prepare"],
+                started_at="2026-01-01T00:00:00+00:00",
+                finished_at="2026-01-01T00:00:01+00:00",
+                duration_seconds=1.0,
+                return_code=0,
+                timed_out=False,
+                limit_breach=None,
+                resources=["trusted_machine"],
+                stdout_path="logs/001.stdout",
+                stderr_path="logs/001.stderr",
+            )
+            with (
+                patch.object(run_l1, "ROOT", root),
+                patch.object(run_l1, "REPRODUCTION", root / "reproduction"),
+                patch.object(
+                    run_l1,
+                    "LOOP_CANDIDATE_QUALIFICATION_ROOT",
+                    qualification,
+                ),
+            ):
+                run_l1._provision_candidate(
+                    recorder,
+                    qualification,
+                    "q1-l1-candidate-20260101t000000z-deadbeef",
+                )
+            self.assertEqual(
+                (qualification / "boundary-validation.json").read_bytes(),
+                source.read_bytes(),
+            )
+
+    def test_failed_candidate_boundary_qualification_closes_inconclusive(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            loop_root = Path(temporary) / "l4-contract-reproduction"
+            qualification_root = loop_root / "build" / "candidate-boundary-qualification"
+            cleanup = Mock(return_value=[])
+
+            def fail_provision(
+                _recorder: run_l1.Recorder,
+                evidence: Path,
+                _instance: str,
+            ) -> None:
+                (evidence / "commands.jsonl").write_text("{}\n", encoding="utf-8")
+                raise run_l1.Inconclusive("candidate_provisioning", "failed")
+
             with (
                 patch.object(run_l1, "LOOP_ROOT", loop_root),
                 patch.object(
                     run_l1,
                     "ACTIVE_LOOP",
                     run_l1.LoopContext(
-                        loop_id="Q1/L3",
+                        loop_id="Q1/L4",
                         root=loop_root,
-                        intervention="parent_bounded_stream_capture",
+                        intervention="qualified_candidate_boundary",
                     ),
                 ),
+                patch.object(run_l1, "EVIDENCE_ROOT", loop_root / "evidence"),
+                patch.object(run_l1, "RESULT_PATH", loop_root / "RESULT.md"),
+                patch.object(run_l1, "_checkout_guard"),
+                patch.object(run_l1, "_assert_no_orphaned_run"),
+                patch.object(
+                    run_l1,
+                    "_acquire_execution_lock",
+                    side_effect=lambda: os.open(os.devnull, os.O_RDONLY),
+                ),
+                patch.object(run_l1, "_provision_candidate", side_effect=fail_provision),
+                patch.object(run_l1, "_cleanup_candidate", cleanup),
+                redirect_stdout(io.StringIO()),
             ):
-                run_l1.require_candidate_creation_qualification(
-                    qualification_root,
-                    "a" * 40,
+                self.assertEqual(
+                    run_l1.qualify_candidate_boundary("a" * 40, qualification_root),
+                    2,
                 )
-                with self.assertRaisesRegex(RuntimeError, "did not pass this contract"):
-                    run_l1.require_candidate_creation_qualification(
-                        qualification_root,
-                        "b" * 40,
-                    )
-                commands.write_text("changed\n", encoding="utf-8")
-                with self.assertRaisesRegex(RuntimeError, "command record changed"):
-                    run_l1.require_candidate_creation_qualification(
-                        qualification_root,
-                        "a" * 40,
-                    )
+            cleanup.assert_called_once()
+            self.assertFalse(qualification_root.exists())
+            terminal = next((loop_root / "evidence").iterdir())
+            self.assertTrue((terminal / run_l1.QUALIFICATION_INDEX_NAME).is_file())
+            self.assertTrue((terminal / run_l1.QUALIFICATION_COMPLETION_NAME).is_file())
+            self.assertTrue((terminal / "terminal-RESULT.md").is_file())
+            self.assertIn("**Inconclusive.**", (loop_root / "RESULT.md").read_text())
+            self.assertEqual(
+                (loop_root / "RESULT.md").read_bytes(),
+                (terminal / "terminal-RESULT.md").read_bytes(),
+            )
 
     def test_measured_preflight_revalidates_candidate_qualification(self) -> None:
         events: list[str] = []
@@ -1350,7 +1639,7 @@ class ContractMechanicsTests(unittest.TestCase):
             patch.object(
                 run_l1,
                 "LOOP_CANDIDATE_QUALIFICATION_ROOT",
-                L3_ROOT / "build" / "candidate-creation-qualification",
+                L4_ROOT / "build" / "candidate-boundary-qualification",
             ),
             patch.object(
                 run_l1,
@@ -1359,7 +1648,7 @@ class ContractMechanicsTests(unittest.TestCase):
             ),
             patch.object(
                 run_l1,
-                "require_candidate_creation_qualification",
+                "require_candidate_boundary_qualification",
                 side_effect=require,
             ),
             self.assertRaisesRegex(RuntimeError, "qualification rejected"),
@@ -1367,15 +1656,15 @@ class ContractMechanicsTests(unittest.TestCase):
             run_l1._preflight("a" * 40)
         self.assertEqual(events, ["checkout", "qualification"])
 
-    def test_missing_candidate_qualification_receipt_fails_closed(self) -> None:
+    def test_missing_candidate_boundary_qualification_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            loop_root = Path(temporary) / "l3-contract-reproduction"
+            loop_root = Path(temporary) / "l4-contract-reproduction"
             with (
                 patch.object(run_l1, "LOOP_ROOT", loop_root),
-                self.assertRaisesRegex(RuntimeError, "receipt is missing"),
+                self.assertRaisesRegex(RuntimeError, "qualification is missing"),
             ):
-                run_l1.require_candidate_creation_qualification(
-                    loop_root / "build" / "candidate-creation-qualification",
+                run_l1.require_candidate_boundary_qualification(
+                    loop_root / "build" / "candidate-boundary-qualification",
                     "a" * 40,
                 )
 

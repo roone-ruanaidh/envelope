@@ -74,8 +74,8 @@ must_be_blocked(
     lambda: (workspace / ".venv").rename(workspace / ".escaped-venv"),
 )
 must_be_blocked(
-    "rename Codex control directory",
-    lambda: (workspace / ".codex").rename(workspace / ".escaped-codex"),
+    "create Codex control directory",
+    lambda: (workspace / ".codex").mkdir(),
 )
 must_be_blocked(
     "unlink authentication sentinel",

@@ -21,7 +21,6 @@ workspace_dependencies = false
 
 [permissions.q1_l1]
 description = "Q1/L1 candidate authoring: public contract plus candidate workspace, no command network"
-extends = ":workspace"
 
 [permissions.q1_l1.filesystem]
 ":minimal" = "read"
@@ -29,11 +28,9 @@ extends = ":workspace"
 
 [permissions.q1_l1.filesystem.":workspace_roots"]
 "." = "write"
-".agents" = "deny"
 ".codex" = "deny"
 ".venv" = "read"
 "AGENTS.md" = "read"
-"**/AGENTS.md" = "read"
 "public/contract" = "read"
 
 [permissions.q1_l1.network]

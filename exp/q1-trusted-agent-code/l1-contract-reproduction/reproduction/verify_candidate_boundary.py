@@ -16,6 +16,9 @@ from typing import Any, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
+HOST_REPOSITORY = ROOT.parents[2]
+HOST_HOME = Path.home().resolve()
+PROBE_STREAM_RETENTION_BYTES = 4 * 1024
 EXPECTED_PROBE = {
     "external_command_network": "blocked",
     "home_codex_control": "unreadable_and_unwritable",
@@ -117,10 +120,56 @@ def _run_lima(instance: str, command: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["limactl", "shell", "--tty=false", instance, "sh", "-lc", command],
         check=False,
-        text=True,
+        encoding="utf-8",
+        errors="backslashreplace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+
+
+def _public_safe_probe_text(value: str) -> tuple[str, list[dict[str, Any]]]:
+    replacements = [
+        (str(HOST_REPOSITORY), "[HOST_REPOSITORY]", "HOST_REPOSITORY"),
+        (str(HOST_HOME), "[HOST_HOME]", "HOST_HOME"),
+        (f"/home/{HOST_HOME.name}", "[CANDIDATE_HOME]", "CANDIDATE_HOME"),
+    ]
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if api_key:
+        replacements.append(
+            (api_key, "[REDACTED_OPENAI_API_KEY]", "OPENAI_API_KEY")
+        )
+    records = []
+    for private, public, label in sorted(
+        replacements,
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        count = value.count(private)
+        if count:
+            value = value.replace(private, public)
+            records.append({"count": count, "item": label})
+    return value, records
+
+
+def _bounded_probe_stream(value: str) -> dict[str, Any]:
+    public, redactions = _public_safe_probe_text(value)
+    encoded = public.encode("utf-8")
+    retained = encoded[:PROBE_STREAM_RETENTION_BYTES].decode("utf-8", errors="ignore")
+    return {
+        "redactions": redactions,
+        "text": retained,
+        "truncated": len(encoded) > len(retained.encode("utf-8")),
+    }
+
+
+def _probe_process(result: subprocess.CompletedProcess[str]) -> dict[str, Any]:
+    return {
+        "encoding": "utf-8-backslashreplace",
+        "retention_limit_bytes": PROBE_STREAM_RETENTION_BYTES,
+        "return_code": result.returncode,
+        "stderr": _bounded_probe_stream(result.stderr),
+        "stdout": _bounded_probe_stream(result.stdout),
+    }
 
 
 def _installed_key(path: str) -> str | None:
@@ -232,14 +281,18 @@ def _report(
     *,
     lima_authority: dict[str, Any] | None,
     failure: str | None,
+    failure_phase: str | None,
     installed_hashes: dict[str, str] | None,
     candidate_runtime: dict[str, Any] | None,
     probe: dict[str, str] | None,
+    probe_process: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
         "failure": failure,
+        "failure_phase": failure_phase,
         "passed": failure is None,
         "probe": probe,
+        "probe_process": probe_process,
         "provenance": {
             "authority_sha256": authority_hashes,
             "candidate_runtime": candidate_runtime,
@@ -248,7 +301,7 @@ def _report(
             "installed_sha256": installed_hashes,
             "permissions_profile": "q1_l1",
         },
-        "schema_version": 1,
+        "schema_version": 2,
     }
 
 
@@ -261,9 +314,11 @@ def verify(instance: str, root: Path = ROOT) -> dict[str, Any]:
             authority,
             lima_authority=lima_authority,
             failure="installed_provenance_command_failed",
+            failure_phase="installed_provenance",
             installed_hashes=None,
             candidate_runtime=None,
             probe=None,
+            probe_process=None,
         )
     installed = _installed_hashes(installed_result.stdout)
     if installed is None:
@@ -271,18 +326,22 @@ def verify(instance: str, root: Path = ROOT) -> dict[str, Any]:
             authority,
             lima_authority=lima_authority,
             failure="installed_provenance_invalid",
+            failure_phase="installed_provenance",
             installed_hashes=None,
             candidate_runtime=None,
             probe=None,
+            probe_process=None,
         )
     if any(installed[name] != authority[name] for name in installed):
         return _report(
             authority,
             lima_authority=lima_authority,
             failure="installed_authority_mismatch",
+            failure_phase="installed_authority",
             installed_hashes=installed,
             candidate_runtime=None,
             probe=None,
+            probe_process=None,
         )
 
     runtime_result = _run_lima(instance, VENV_PROVENANCE_COMMAND)
@@ -296,23 +355,29 @@ def verify(instance: str, root: Path = ROOT) -> dict[str, Any]:
             authority,
             lima_authority=lima_authority,
             failure="candidate_runtime_provenance_invalid",
+            failure_phase="candidate_runtime",
             installed_hashes=installed,
             candidate_runtime=None,
             probe=None,
+            probe_process=None,
         )
 
     probe_result = _run_lima(instance, PROBE_COMMAND)
-    probe, failure = _probe_result(probe_result.stdout)
+    process = _probe_process(probe_result)
     if probe_result.returncode != 0:
         failure = "probe_command_failed"
         probe = None
+    else:
+        probe, failure = _probe_result(probe_result.stdout)
     return _report(
         authority,
         lima_authority=lima_authority,
         failure=failure,
+        failure_phase="candidate_boundary_probe" if failure is not None else None,
         installed_hashes=installed,
         candidate_runtime=runtime,
         probe=probe,
+        probe_process=process,
     )
 
 
@@ -370,9 +435,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             authority,
             lima_authority=None,
             failure="boundary_validation_unavailable",
+            failure_phase="verifier",
             installed_hashes=None,
             candidate_runtime=None,
             probe=None,
+            probe_process=None,
         )
     _write_report(args.json_report, report)
     print(json.dumps(report, indent=2, sort_keys=True))
