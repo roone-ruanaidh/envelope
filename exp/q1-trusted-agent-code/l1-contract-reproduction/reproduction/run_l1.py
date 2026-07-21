@@ -36,9 +36,9 @@ RESULT_PATH = ROOT / "RESULT.md"
 HOST_HOME = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
 EVALUATOR_INSTANCE = "q1-l1-evaluator"
 EVALUATOR_RUN_DIRECTORY_MODE = 0o711
-MODEL = "gpt-5"
-REASONING_EFFORT = "high"
-CODEX_VERSION = "codex-cli 0.142.5"
+MODEL = "gpt-5.6-luna"
+REASONING_EFFORT = "max"
+CODEX_VERSION = "codex-cli 0.144.6"
 AGENT_TIMEOUT_SECONDS = 30 * 60
 AGENT_OUTER_TIMEOUT_SECONDS = 31 * 60
 REMOTE_AGENT_TIMEOUT = "30m"
@@ -4153,6 +4153,10 @@ def _unavailable(state: dict[str, Any]) -> list[dict[str, str]]:
                 "reason": "codex exec JSONL reports usage but no charge",
             },
             {
+                "observation": "agent cache-write token usage",
+                "reason": "pinned codex exec JSONL does not report cache-write tokens",
+            },
+            {
                 "observation": "trusted-machine monetary cost",
                 "reason": "the trusted host exposes no monetary meter",
             },
@@ -4170,7 +4174,7 @@ def _unavailable(state: dict[str, Any]) -> list[dict[str, str]]:
             },
             {
                 "observation": "immutable model backend revision",
-                "reason": "the configured gpt-5 model identifier is a service alias",
+                "reason": "the requested gpt-5.6-luna identifier is not an immutable backend snapshot",
             },
         ]
     )
@@ -6362,6 +6366,11 @@ def plan() -> int:
     print(
         json.dumps(
             {
+                "agent_stack": {
+                    "codex_cli": CODEX_VERSION,
+                    "model": MODEL,
+                    "reasoning_effort": REASONING_EFFORT,
+                },
                 "agent_budget": {
                     "initial": 1,
                     "remediation": 1,

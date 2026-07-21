@@ -243,7 +243,7 @@ def _report(
         "provenance": {
             "authority_sha256": authority_hashes,
             "candidate_runtime": candidate_runtime,
-            "codex_cli_required": "codex-cli 0.142.5",
+            "codex_cli_required": "codex-cli 0.144.6",
             "lima": lima_authority,
             "installed_sha256": installed_hashes,
             "permissions_profile": "q1_l1",

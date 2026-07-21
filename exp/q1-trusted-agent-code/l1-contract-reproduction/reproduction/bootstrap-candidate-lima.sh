@@ -9,8 +9,8 @@ test ! -e "${candidate_root}"
 sudo apt-get update
 xargs sudo env DEBIAN_FRONTEND=noninteractive \
   apt-get install --yes --no-install-recommends < "${setup_dir}/candidate-apt-packages.txt"
-sudo npm install --global @openai/codex@0.142.5
-test "$(codex --version)" = "codex-cli 0.142.5"
+sudo npm install --global @openai/codex@0.144.6
+test "$(codex --version)" = "codex-cli 0.144.6"
 
 sudo install -d -m 0755 /etc/codex
 sudo install -m 0644 "${setup_dir}/candidate-codex-config.toml" /etc/codex/config.toml

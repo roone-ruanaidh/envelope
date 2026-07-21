@@ -539,6 +539,10 @@ class CandidateBoundaryReportTests(unittest.TestCase):
             },
         )
         self.assertEqual(report["provenance"]["lima"]["configured_mounts"], [])
+        self.assertEqual(
+            report["provenance"]["codex_cli_required"],
+            "codex-cli 0.144.6",
+        )
         self.assertEqual(report["provenance"]["candidate_runtime"]["python_version"], "3.14.4")
         encoded = json.dumps(report)
         self.assertNotIn("not recorded", encoded)
@@ -660,6 +664,10 @@ class ContractMechanicsTests(unittest.TestCase):
         self.assertEqual(requirements["default_permissions"], "q1_l1")
         self.assertEqual(requirements["allowed_permission_profiles"], {"q1_l1": True})
         self.assertFalse(requirements["permissions"]["q1_l1"]["network"]["enabled"])
+        for feature in ("apps", "multi_agent", "plugins", "remote_plugin"):
+            with self.subTest(feature=feature):
+                self.assertFalse(requirements["features"][feature])
+        self.assertEqual(requirements["mcp_servers"], {})
         self.assertEqual(
             requirements["permissions"]["q1_l1"]["filesystem"][":workspace_roots"][
                 "public/contract"
@@ -671,7 +679,24 @@ class ContractMechanicsTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(config["shell_environment_policy"]["set"]["PYTHONDONTWRITEBYTECODE"], "1")
+        self.assertEqual(config["model"], "gpt-5.6-luna")
+        self.assertEqual(config["model"], run_l1.MODEL)
+        self.assertEqual(config["model_reasoning_effort"], "max")
+        self.assertEqual(config["model_reasoning_effort"], run_l1.REASONING_EFFORT)
+        self.assertEqual(
+            config["shell_environment_policy"]["set"]["PYTHONDONTWRITEBYTECODE"],
+            "1",
+        )
+        bootstrap = (
+            ROOT / "reproduction" / "bootstrap-candidate-lima.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("@openai/codex@0.144.6", bootstrap)
+        self.assertIn('codex-cli 0.144.6', bootstrap)
+        self.assertEqual(run_l1.CODEX_VERSION, "codex-cli 0.144.6")
+        loop = (ROOT / "LOOP.md").read_text(encoding="utf-8")
+        self.assertIn("`codex-cli 0.144.6`", loop)
+        self.assertIn("`gpt-5.6-luna`", loop)
+        self.assertIn("reasoning effort `max`", loop)
         prepare = (ROOT / "reproduction" / "prepare-candidate-lima.sh").read_text(
             encoding="utf-8"
         )
@@ -891,6 +916,8 @@ class ContractMechanicsTests(unittest.TestCase):
             "0199a213-81c0-7800-8aa1-bbab2a035a53",
         )
         self.assertTrue(command.startswith('cd "$HOME/candidate" && exec timeout'))
+        self.assertIn("-m gpt-5.6-luna", command)
+        self.assertIn('model_reasoning_effort="max"', command)
 
     def test_remediation_evidence_must_report_the_original_thread(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -921,6 +948,14 @@ class ContractMechanicsTests(unittest.TestCase):
         with redirect_stdout(output), redirect_stderr(io.StringIO()):
             self.assertEqual(run_l1.plan(), 0)
         plan = json.loads(output.getvalue())
+        self.assertEqual(
+            plan["agent_stack"],
+            {
+                "codex_cli": "codex-cli 0.144.6",
+                "model": "gpt-5.6-luna",
+                "reasoning_effort": "max",
+            },
+        )
         self.assertEqual(
             plan["agent_budget"],
             {"initial": 1, "remediation": 1, "retries": 0, "same_thread": True},
@@ -2945,6 +2980,16 @@ class ContractMechanicsTests(unittest.TestCase):
             accounting["wall"]["recorded_cutoff_at"], "2026-01-01T00:00:10+00:00"
         )
         self.assertEqual(accounting["wall"]["post_cutoff_tail_seconds"], "unknown")
+
+    def test_unavailable_cost_evidence_names_cache_write_gap(self) -> None:
+        unavailable = run_l1._unavailable({"status": "Inconclusive"})
+        self.assertIn(
+            {
+                "observation": "agent cache-write token usage",
+                "reason": "pinned codex exec JSONL does not report cache-write tokens",
+            },
+            unavailable,
+        )
 
     def test_unobserved_candidate_vm_never_claims_a_lifetime_bound(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

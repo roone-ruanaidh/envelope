@@ -2,145 +2,98 @@
 
 > **Question:** What does it cost to move one agent-produced lease service from declared completion to accepted completion under a fixed contract and settlement procedure?
 
-This loop belongs to [`Q1 — cost of trusted agent-produced code`](../QUESTION.md). It measures one isolated implementation run. It can change which verification, evidence, remediation, and human-review steps later Envelope work retains. It does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the public contract.
+This loop contributes one configuration-specific observation to [Q1](../QUESTION.md). It can inform later human decisions about verification, evidence, remediation, and review, but authorizes no next loop or promotion. It does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the public contract.
 
-The dispatchability implementation is pending human review. No candidate run or disposition exists.
+## Target
 
-## Authorities and inputs
+Measure the separate observable costs and evidence produced as one isolated implementation moves through declared completion, deterministic non-human settlement, and explicit human source review.
 
-- The reviewed question-and-loop commit on clean `main` is the executable contract. `QUESTION.md` and `LOOP.md` are copied and indexed as run authorities. Both execution and finalization receive the commit's full object ID explicitly, require exact `HEAD`, and may not amend or rebase it.
-- [`public/contract`](public/contract) is the complete candidate-visible acceptance contract.
-- `evaluator/`, its behavioral reference, and deliberate defects are sealed from the implementation environment.
-- `reproduction/candidate-lima.yaml`, the pinned package lists, `candidate-codex-config.toml`, and admin-enforced `candidate-codex-requirements.toml` define candidate provisioning and authority.
-- `reproduction/evaluator-authority.json` pins the dedicated `q1-l1-evaluator` normalized Lima configuration, selected image digest, disabled automatic package updates, complete installed-package inventory, Python runtime tree, evaluator tools, and isolation capabilities. Agent-owned setup may start it and reconcile disposable setup artifacts before the measured run; after the executable contract is reviewed, the loop never creates, repairs, updates, or upgrades it.
-- `reproduction/agent-initial-prompt.md`, `agent-remediation-prompt.md`, and `agent-completion.schema.json` define invocation and declared completion.
-- `reproduction/HUMAN_REVIEW.md` defines the only judgment gate.
-- An `OPENAI_API_KEY` supplied out of band is a control input, never evidence. Absence before the run means execution has not begun.
+The implementation agent is pinned to `codex-cli 0.144.6`, `gpt-5.6-luna`, and reasoning effort `max`. The model identifier does not claim an immutable backend revision.
 
-## Agent and human boundaries
+## Authorities and boundaries
 
-The implementation agent receives one fresh no-host-mount Lima workspace containing only the protected public contract, protected locked virtual environment, and writable candidate files. Its commands cannot read outside the workspace, modify `.venv`, `public/contract`, Codex control paths, or repository instruction files; they cannot use the network. `/etc/codex/requirements.toml` enforces the permission profile, disabled features, approval policy, and web-search restriction so candidate-written configuration cannot weaken them.
-
-Codex itself may use the API control plane. Authentication enters `codex login --with-api-key` through stdin, is not placed in argv, environment forwarded to the VM, prompt, candidate files, logs, or evidence, and is removed with `codex logout` before the candidate VM is deleted.
-
-Humans own this contract, changes to meaning or acceptance, the final source attestation, promotion, publication, and shipping. Agents own the approved procedure, evidence capture, deterministic non-human disposition, the result draft, and a terminal local commit. Agents do not infer a human attestation.
-
-## Budget and stopping rule
-
-- One initial Codex invocation and at most one remediation invocation.
-- Each invocation has a 30-minute hard wall timeout.
-- Every other command has a 10-minute default hard timeout. Candidate provisioning has 30 minutes; each agent has a 30-minute guest timeout inside a 31-minute outer timeout. Cleanup and pending-evidence closure share one 5-minute aggregate window, normal human finalization after the durable attempt marker has one 300-second hard wall deadline with no shorter internal cutoff or closure reserve, and the automated execute phase has 3 hours total.
-- There are no automatic retries. A second agent invocation is the single approved same-thread remediation, not a retry. Finalization never resumes prior terminal work: any pre-existing `finalization-attempt.json`, settlement, finalization-completion receipt, terminal evidence index, or recognized partial terminal artifact requires human recovery and is never closed automatically.
-- Transfer admits at most 10,000 traversed entries including empty directories, 16 MiB per regular file, 128 MiB total regular-file bytes, depth 32, 1,024 filesystem bytes per relative path, and an 8 MiB encoded manifest.
-- Control documents admit at most 128 argv entries, 8 KiB UTF-8 per entry, 64 KiB UTF-8 aggregate including separators, and 1 MiB each for completion, prompt, and human attestation. Each command stream is capped at 32 MiB and retained run evidence at 512 MiB; 64 MiB inside that total is reserved for closure controls and indexes and, while human review is pending, terminal settlement.
-- Each isolated evaluator generation is capped at four CPU equivalents, 4 GiB aggregate memory with no swap, 256 tasks, and one shared 1 GiB writable-state capacity. These are outer evaluator limits, not candidate acceptance thresholds.
-- Any outer deadline, quota, control, stream, evidence, or resource-envelope breach settles `Inconclusive` and overrides a candidate-looking exit or report. The declared behavioral suite's existing 45-second contract deadline remains a candidate failure when no outer breach occurred.
-- Before the run ID, clocks, or evidence exist, the execution agent prepares the dedicated Q1/L1 namespace and requires no prior evidence generation, `q1-l1-candidate-<run-id>` VM, `/tmp/q1-l1-run-<run-id>` root, or referenced process, cgroup, mount, or loop backing. The agent may remove only positively attributed disposable setup artifacts that have no run record, then must verify their absence. A candidate VM, run root, evidence or result artifact, ambiguous ownership, or unverifiable absence stops for human review without deletion. Preparation is outside the measured run and has no disposition.
-- Preparation and any bounded setup cleanup occur outside `run_l1.py`; `run_l1.py execute` only verifies the prepared baseline before opening a measured run.
-- Remediation resumes the initial recorded Codex thread in the same workspace.
-- Stop remediation when all non-human gates pass, the one remediation is consumed, the agent returns `blocked`, an invocation does not exit zero with a valid declaration, or an infrastructure/evidence fault occurs.
-- CLI exit zero plus schema-valid `status: declared_complete` and a nonempty NUL-free foreground argv is the only completed-candidate predicate.
-- A blocked, failed, or timed-out invocation has no new declared candidate. Partial workspace bytes are never transferred. If remediation is incomplete, preserve the last declared snapshot as evidence but settle the procedure `Inconclusive`.
-- Human review is final and non-remediating. A negative review rejects this run; further work requires a separately approved change or loop.
+- The reviewed question-and-loop commit on clean `main` is the executable contract. Execution and finalization require its full object ID and exact `HEAD`; the commit is never amended or rebased after execution begins.
+- [`public/contract/`](public/contract/) is the complete candidate-visible acceptance contract. [`evaluator/`](evaluator/) and its reference and defect fixtures are sealed.
+- [`reproduction/`](reproduction/) contains the reviewed provisioning, agent-control, transfer, evidence, accounting, and settlement authorities. `evaluator-authority.json` pins the already prepared, dedicated `q1-l1-evaluator`; the measured run never creates, repairs, updates, or upgrades it.
+- The candidate receives one fresh Lima VM with no host mounts, no command network, protected contract, toolchain, and control paths, and a writable candidate workspace. Managed requirements prevent candidate-written configuration from weakening that boundary. Codex alone may reach the API control plane.
+- `OPENAI_API_KEY` enters `codex login --with-api-key` through stdin, is never forwarded to the candidate environment or retained as evidence, and is removed before candidate teardown. Its absence means execution has not begun.
+- Humans own this contract, acceptance meaning, final source attestation, promotion, publication, and shipping. Agents own the approved procedure, reproducible public-safe evidence, deterministic non-human disposition, result draft, and terminal local commit. Agents never infer human attestation.
 
 ## Procedure
 
-### 1. Preflight
+1. **Prepare and preflight.** Before the run ID, clocks, or evidence exist, the agent may reconcile only positively attributed disposable Q1/L1 setup artifacts with no run record, then must prove a zero-residue Q1/L1 namespace. Existing candidate VMs, run roots, evidence or result artifacts, ambiguous ownership, or unverifiable absence stop for human review without deletion. Preparation occurs outside `run_l1.py`; `execute` only verifies the prepared baseline. Under the exclusive process lock, require clean `main`, exact reviewed `HEAD`, no prior result or evidence generation, the API key, and the dedicated evaluator in `Running` state.
+2. **Validate the evaluator.** Start the run clocks and evidence, recheck zero scoped residue, and exact-compare the evaluator's Lima config, image, packages, Python runtime, tool hashes, and isolation capabilities with its authority. Run dispatch, evaluator, and isolation validation. Drift, residue, absence, or failure settles `Inconclusive`; never repair the evaluator inside the run.
+3. **Provision and invoke.** Create a never-reused candidate VM and require its boundary and provenance reports. Authenticate through stdin and make one 30-minute Codex invocation with the canonical prompt and completion schema. Completed candidate means only: CLI exit zero, schema-valid `status: declared_complete`, and a nonempty NUL-free foreground argv. A blocked, failed, or timed-out invocation has no new candidate; partial workspace bytes are never transferred.
+4. **Snapshot and transfer.** Quiesce candidate-user processes, then copy every candidate-owned regular file exactly once through descriptor-relative, no-follow opens into private staging. Exclude only provisioner-owned `.git`, `.venv`, and `public/contract`. Ownership ambiguity, replacement of an exclusion, links, special files, changed descriptors, surviving processes, or a limit breach makes transfer inadmissible. Create a normalized archive and sorted SHA-256 manifest, verify both on the host, transfer the same bytes to a fresh evaluator run root, and verify again.
+5. **Run every non-human gate.** For each completed attempt, run all three gates even when typing fails: clean locked dependency bootstrap; strict mypy over the complete read-only candidate; and the sealed black-box behavioral suite in a no-route, bounded Bubblewrap environment. Reverify the candidate manifest after all gates. Candidate typing or behavioral findings are admissible failures. Bootstrap, wrapper, isolation, resource, integrity, report, or evidence faults are `Inconclusive`.
+6. **Remediate once when eligible.** Only an initial completed candidate with an admissible typing or behavioral failure may resume the same Codex thread. Feedback is limited to failed gate names, typing output, failed behavioral records, startup error, and candidate service-log tail; it excludes passed hidden scenarios, evaluator source, reference behavior, defect identities, and evaluator-validation results. A completed remediation receives a fresh transfer, bootstrap, typing, and behavior run. If remediation produces no completed candidate, preserve the last declared snapshot as evidence and settle `Inconclusive`. No third invocation exists.
+7. **Settle and stop.** A final admissible candidate failure is `Rejected`; an infrastructure, evidence, or undefined-boundary fault is `Inconclusive`. A closed automatic terminal generation produces the local result commit and stops. If every non-human gate passes, clean exact run-scoped state, close and verify the pending evidence generation, draft `RESULT.md`, and stop at `PendingHumanReview`.
+8. **Finalize only explicit review.** Supply the exact final source, foreground argv, manifest hash, and candidate-identity hash with [`HUMAN_REVIEW.md`](reproduction/HUMAN_REVIEW.md). `Affirmative` settles `Accepted`. `Negative` must identify a declared clause and an existing source line or file, foreground-argv argument, or required missing path; it settles `Rejected`. No response or any other response remains pending. Human review is final and non-remediating.
 
-1. Under the exclusive process lock and before the measured run begins, require clean `main`, no existing `RESULT.md` or evidence generation, the reviewed executable contract commit, the API-key control input, the dedicated `q1-l1-evaluator` in `Running` state, and the prepared zero-residue Q1/L1 namespace. A preparation fault stops before a run exists; it has no experimental disposition.
-2. Start the run ID, UTC and monotonic clocks, command record, and public-safe evidence directory.
-3. Recheck zero scoped residue, then actively collect and exact-compare the evaluator's normalized Lima config, ordered selected-architecture images, complete package inventory, runtime tree, tool hashes/versions, and isolation capabilities against `evaluator-authority.json`. Reject unmapped config fields and drift; never repair the instance. Then run `make verify-dispatch`, `make verify-evaluator`, and `make verify-isolation`. Any absence, stopped/unreachable state, new residue, mismatch, failure, or missing report after step 2 settles `Inconclusive`; do not provision or invoke the implementation agent.
+## Limits and stopping rules
 
-### 2. Provision and invoke
+| Envelope | Limit |
+|---|---|
+| Agent | One initial plus at most one same-thread remediation; 30 minutes each; no retries |
+| Run | Three hours total automated execution |
+| Commands | 10 minutes default; 30 minutes candidate provisioning; 31-minute outer agent timeout |
+| Closure | One aggregate 5-minute cleanup/pending-evidence window; 300 seconds for finalization after its durable attempt marker |
+| Transfer | 10,000 entries; 16 MiB/file; 128 MiB total; depth 32; 1,024 path bytes; 8 MiB manifest |
+| Controls | 128 argv entries; 8 KiB/entry; 64 KiB aggregate; 1 MiB each for prompt, completion, and attestation |
+| Evidence | 32 MiB/command stream; 512 MiB retained, including a 64 MiB closure reserve |
+| Evaluator | 4 CPU equivalents; 4 GiB memory; no swap; 256 tasks; 1 GiB shared writable state |
 
-1. Create a never-reused `q1-l1-candidate-<run-id>` instance through `reproduction/prepare-candidate-lima.sh`.
-2. Require its standalone boundary-validation report—including home-auth denial and failed privilege escalation—and capture the image digest, authority hashes, package versions, Codex version/features/executable hash, Python version, kernel, and mount evidence. Failure or a missing report settles `Inconclusive`.
-3. Authenticate through stdin.
-4. Invoke pinned `codex-cli 0.142.5` with requested model `gpt-5`, reasoning effort `high`, strict config, ignored user/project command rules, JSONL events, the canonical initial prompt, and the protected output schema. The model name is a service alias; no immutable backend revision is claimed.
-5. Capture the thread ID, prompt, stderr, JSONL, structured completion, externally measured duration, and reported token usage. Monetary agent charge remains `unknown` because the CLI does not report it.
+Any outer deadline, quota, control, stream, evidence, transfer, or resource breach overrides candidate-looking output and settles `Inconclusive`. The public contract's 45-second behavioral deadline remains a candidate failure when no outer breach occurred. Stop remediation when the gates pass, the allowance is consumed, the agent returns `blocked`, no valid completed candidate exists, or infrastructure/evidence fails.
 
-### 3. Transfer the declared candidate
+Admissible protocol, startup, lifecycle, typing, behavioral, and declared 45-second deadline findings are candidate failures. Outer-envelope records take precedence; wrapper sentinel 125, report failure, a missing required artifact, command/report disagreement, or conflict among public contract artifacts is infrastructure failure and settles `Inconclusive`. Automation infers no other cause. Evaluator resource limits are outer controls, not candidate acceptance thresholds.
 
-The trusted outer harness first terminates and verifies the absence of non-controller processes owned by the candidate user. It then copies every candidate-owned regular file exactly once through descriptor-relative, no-follow opens into private staging, regardless of ignore rules, cache name, extension, content, or mode. It excludes only provisioner-owned `.git`, `.venv`, and `public/contract`; an owner mismatch, candidate-owned replacement of an exclusion, selected symlink, multiply-linked file, special file, changed descriptor, limit breach, or process that cannot be quiesced makes transfer inadmissible and settles `Inconclusive`.
-
-The exporter enforces the declared entry/file/total/depth/path/manifest limits while walking, reading, loading, extracting, and verifying. It creates the normalized archive and sorted SHA-256 manifest from staging; the manifest records path, bytes, size, and mode. The host extracts and verifies the source snapshot, then transfers the same archive and manifest into `q1-l1-evaluator`. Evaluation uses the new `/tmp/q1-l1-run-<run-id>` root outside the evaluator tree; it verifies the manifest before adding the identical public contract and a new virtual environment and after all gates finish. Any mismatch settles `Inconclusive`.
-
-### 4. Run every non-human gate
-
-Run all applicable gates for every completed attempt; a typing failure does not skip behavior.
-
-1. **Clean bootstrap:** create an empty Python 3.14 virtual environment, install every exact version in `python-arm-requirements.v1.txt` with `--no-deps`, and run `pip check`. Package/environment failure is an infrastructure failure and settles `Inconclusive`.
-2. **Strict typing:** inside a read-only candidate mount and no-route network namespace, run `python3 -m mypy --config-file public/contract/mypy.v1.ini .` with cache in bounded isolated temporary storage and Python safe-path/user-site isolation so candidate files cannot impersonate the locked typechecker. The production wrapper places the complete candidate tree in the fixed CPU/memory/PID cgroup and 1 GiB writable capacity. A mypy failure is an admissible candidate failure; any wrapper, isolation, or resource-envelope failure settles `Inconclusive`. Candidate-owned build commands never run with evaluator access. Human review verifies that `make typecheck` delegates to this exact command.
-3. **Behavior:** pass the bounded declared foreground argv as an argv list—never through a shell—to `evaluator.rerun`. The candidate runs read-only under Bubblewrap in a no-route namespace and the same cgroup/writable-state envelope; restart-persistent evaluator-owned SQLite state and temporary bytes share the 1 GiB capacity. A trusted inner launcher remaps a candidate’s own exit 125; raw Bubblewrap/wrapper 125 and any detected CPU, memory, PID, or state exhaustion remain isolation failures. The isolation preflight exercises no-route, read-only source, evaluator absence, bounded state persistence, descendant teardown, typechecker shadowing, resource breaches, and both sentinel origins through the production wrappers.
-
-Behavioral verification proves only the declared black-box scenarios. It does not satisfy bootstrap, typing, or human review.
-
-### 5. Remediate once when eligible
-
-Remediation is eligible only when a completed initial candidate has an admissible typing or behavioral failure. Feedback contains failed gate names, typing stdout/stderr, failed behavioral test records, startup error, and candidate service-log tail. It excludes passed hidden scenarios, evaluator source, reference behavior, deliberate-defect identities, and evaluator-validation results.
-
-Resume the same Codex thread with the canonical remediation prompt. A completed remediation repeats transfer, clean bootstrap, typing, and behavior from fresh evaluation state. No third invocation exists.
-
-### 6. Settle or request human review
-
-- A final admissible candidate-gate failure after completed remediation settles `Rejected`. Any automatic `Rejected | Inconclusive` disposition is terminal only after its closed evidence generation verifies; the agent then creates the local result commit and stops without human finalization.
-- All non-human gates passing produces `PendingHumanReview`, not a terminal disposition.
-- At that boundary, within the one aggregate 5-minute window, remove authentication, delete and verify absence of the candidate VM, remove and verify absence of the exact run-scoped `q1-l1-evaluator` root, process, cgroup, mount, and loop state, normalize host-local paths, scan/redact secret control input, draft `RESULT.md`, copy that draft into the evidence, index the evidence, and verify it. The deadline controller must then atomically complete before appending the index-hash-bound `execution-completion.json` receipt. Only that receipt closes a pending or automatic-terminal generation; its own durable-write and verification tail is recorded as `unknown`. If the hard cutoff wins, execution writes no receipt or further repository/evidence bytes, returns exit 2 with `status: Inconclusive`, `terminal_evidence: incomplete`, and `recovery: human_required`, and stops. Missing or partial completion evidence is uncommittable and requires human recovery. Any earlier cleanup, safety, or closure failure settles `Inconclusive`; residue blocks later execution for human recovery.
-- Supply the exact final source, foreground argv, manifest hash, and composite candidate-identity hash with `reproduction/HUMAN_REVIEW.md`. No response or any response other than a schema-valid `Affirmative | Negative` remains pending.
-- `Affirmative` settles `Accepted`; `Negative` with a concrete declared-clause finding at an existing typed source line, whole source file, foreground-argv, or missing-path location settles `Rejected`.
-- Finalization never rewrites the closed pending generation. Under the process lock, a fresh invocation first verifies exact `HEAD` and the execution-completion receipt, then appends and durably fsyncs `finalization-attempt.json`; only then does it arm the hard timer, preserving the full 300 seconds for normal finalization. The marker binds the run and contract, is never rewritten or removed automatically, and is included in any successful terminal evidence index. The invocation must validate and complete the settlement containing the attestation or evidence fault, terminal accounting and RESULT bytes, projected terminal `RESULT.md`, full terminal evidence index, and terminal verification before the hard cutoff. The deadline controller must then atomically complete before appending the index-hash-bound `finalization-completion.json` receipt; only that receipt makes the terminal generation committable, and its own durable-write and verification tail is `unknown`. If the cutoff wins, automation performs no further repository or evidence writes, gives a killed checkout-guard child only a nonblocking reap before runner exit, returns exit 2, emits exactly `{"failure_stage":"finalization_deadline","recovery":"human_required","status":"Inconclusive","terminal_evidence":"incomplete"}` on stderr, and stops. Any partial terminal artifacts remain append-only and uncommittable; a later invocation treats them as human recovery and never closes them automatically. A pending evidence/source fault settled before the cutoff is `Inconclusive`; invalid attestation or checkout mismatch leaves the pending generation unchanged.
-- `PendingHumanReview` stops for human attestation and can reach a local result commit only after terminal settlement verifies public safety and reproducibility. An automatic `Rejected | Inconclusive` reaches that commit through its verified closed generation instead. Never push.
+Evidence closure is append-only. The pending generation is closed only by its verified index-bound `execution-completion.json`; finalization begins with one durable `finalization-attempt.json` and closes only through a verified index-bound `finalization-completion.json`. Pre-existing or partial terminal artifacts, a missed hard cutoff, or residue after cleanup require human recovery; automation never resumes or rewrites them.
 
 ## Evidence and accounting
 
-Required evidence, when its stage is reached:
+When its stage is reached, evidence must include:
 
-- executable contract commit, copied and indexed `QUESTION.md` and `LOOP.md`, and hashes/copies of every other run authority;
-- exact evaluator-environment observation after a match, non-echoing authority-comparison and residue reports, dispatch/evaluator/isolation reports, and candidate boundary validation;
-- candidate image/config/tool/package provenance;
-- prompts, sanitized agent JSONL and stderr, structured completions, thread ID, requested model/reasoning setting, per-invocation usage and elapsed time;
-- each quiesced declared source snapshot, source-plus-argv identity, SHA-256 manifest, archive/manifest hashes, and transfer verification;
-- per-attempt bootstrap, typing, behavior, and summary reports;
-- remediation feedback;
-- ordered commands with argv, UTC start/end, monotonic duration, exit, timeout, and stdout/stderr references;
-- separate agent elapsed/usage; completed trusted-machine command intervals, monotonic execute/finalization elapsed lower bounds, index scan-and-hash intervals, and explicit `unknown` immutable-artifact self-recording tails; candidate provisioning start plus the lower-bound interval from first verified instance existence through the last verified-present observation, with full VM lifetime left `unknown` and right-censoring when absence is not verified; evaluator workload with standing provisioning/idle excluded; human active minutes and a review-wait upper bound; and wall elapsed lower bound through its recorded cutoff;
-- an explicit nonexclusive-overlap rule: agent, candidate-VM, and evaluator intervals overlap trusted-machine and wall intervals and must never be summed;
-- human checklist, final-manifest and source-plus-argv identity hashes, decision, structured findings, narrowly typed approved boundary exceptions, and active minutes or `unknown` when review occurs;
-- explicit redactions, intentionally omitted secrets, and unavailable observations;
-- the indexed pending RESULT draft, append-only index-bound execution-completion receipt, append-only `finalization-attempt.json` when finalization begins, projected terminal `RESULT.md`, append-only settlement and index-bound finalization-completion receipt when human review occurs, and SHA-256 pending/terminal evidence indexes.
+- the contract commit and copies or hashes of every run authority;
+- evaluator fingerprint, residue, dispatch, self-validation, isolation, and candidate-boundary reports;
+- candidate and toolchain provenance, prompts, sanitized JSONL and stderr, structured completion, thread ID, requested model and effort, and per-invocation token usage and elapsed time;
+- every declared candidate snapshot, manifest, archive identity, foreground argv, and transfer verification;
+- bootstrap, typing, behavior, summary, and remediation-feedback reports for every evaluated attempt;
+- ordered command argv, UTC and monotonic timing, exit, timeout, and output references;
+- separate agent usage/time, trusted-machine intervals, candidate-VM observed lifetime lower bound, evaluator workload excluding standing provisioning and idle time, human active minutes, review-wait upper bound, and wall-time lower bound;
+- redactions, unavailable observations, human attestation when reached, result drafts, settlements, indexes, and completion receipts.
 
-Loss of evidence required to support a reached stage settles `Inconclusive`. A field explicitly recorded as `unknown` is present evidence, not missing evidence, and does not itself change disposition. Agent, local-machine, and human monetary costs remain separately `unknown` unless directly observed; they are never zero-filled. Wall time begins when the runner creates the run; `wall.elapsed_lower_bound_seconds` ends at `wall.recorded_cutoff_at`. Immutable-artifact serialization, durable write, projection, and final-verification tails remain `unknown`, never zero-filled. Review wait is an upper bound because its request timestamp precedes final pending-artifact closure.
+Agent, candidate-VM, evaluator, trusted-machine, human, and wall intervals are nonexclusive and must not be summed. Candidate-VM measurement runs from first verified existence through last verified presence; its full lifetime remains `unknown` and is right-censored unless absence is verified. Wall time begins when the runner creates the run and ends at its recorded cutoff. Execute/finalization and index intervals are lower bounds; immutable-artifact serialization, durable write, projection, and final-verification tails remain `unknown`.
 
-Only reproducible public-safe evidence may enter the terminal commit. Every manifested candidate-owned cache, log, database, generated file, and other regular file is controlled candidate evidence and is commit-eligible when public-safe. Credentials, authentication state, transient harness/evaluator virtual environments and caches, evaluator databases outside the manifested candidate, VM disks, and uncontrolled archives are never committed.
+The pinned Codex JSONL reports token categories but not cache-write tokens or monetary charge; both remain `unknown`. Other monetary costs also remain separately `unknown` unless directly observed. Missing required evidence for a reached stage settles `Inconclusive`; an explicit `unknown` is present evidence and does not. Only reproducible public-safe evidence may enter a terminal commit. Credentials, auth state, VM disks, transient environments, evaluator databases, and uncontrolled archives never do.
 
 ## Disposition
 
-Envelope vocabulary maps `Pass = Accepted` and `Fail = Rejected`.
+Envelope maps `Pass = Accepted` and `Fail = Rejected`.
 
-- **Accepted:** evaluator and evidence are admissible; bootstrap, typing, and behavior pass for the final declared candidate; human review is affirmative.
-- **Rejected:** the final completed candidate retains an admissible typing or behavioral failure after its permitted remediation, or human review identifies a concrete declared implementation violation.
-- **Inconclusive:** after the measured run begins, public-contract conflict; evaluator absence, stopped state, drift, new residue, or isolation invalidity; authentication/API/service failure; provisioning, bootstrap-environment, ownership, transfer, integrity, or evidence failure; any approved outer deadline/quota/size/resource breach; blocked/failed/timed-out invocation without a new completed candidate; or any other undefined boundary. Pre-run preparation has no disposition.
-- **PendingHumanReview:** all non-human gates pass but the required human attestation does not yet exist. This is not terminal and cannot be committed as a result.
+| State | Rule |
+|---|---|
+| `Accepted` | Admissible evaluator and evidence; final candidate passes bootstrap, typing, and behavior; human review is affirmative. |
+| `Rejected` | Final completed candidate retains an admissible typing or behavioral failure after permitted remediation, or human review identifies a concrete declared violation. |
+| `Inconclusive` | After measurement begins, evaluator, contract, authentication, provisioning, transfer, isolation, resource, deadline, cleanup, evidence, or undefined-boundary failure prevents a valid decision. Pre-run preparation has no disposition. |
+| `PendingHumanReview` | Every non-human gate passes but explicit human attestation is absent. This state is nonterminal and cannot be committed as a result. |
 
-Candidate protocol, startup, lifecycle, typing, the declared 45-second behavioral deadline, and behavioral findings produced by an otherwise admissible gate are candidate failures. Outer timeout/output/evidence/resource records are checked first and override candidate-looking output. Wrapper sentinel 125, report-generation failure, missing required artifact, or command/report disagreement is infrastructure failure. Automation does not infer another cause. A discovered conflict among public contract artifacts is evaluator invalidity and settles `Inconclusive`.
+## Verify and run
 
-## Reproduction
-
-Phase 2 verification is local and does not provision or invoke an agent:
+Read-only verification does not provision infrastructure or invoke an agent:
 
 ```sh
 make verify-dispatch
 python3 -B -I reproduction/run_l1.py plan
 ```
 
-Authoritative runtime/evaluator validation occurs against the already reviewed, prepared, Running `q1-l1-evaluator` prerequisite during execution; the runner will not create, start, repair, or upgrade it. After the reviewed dispatchability changes are committed and the second human approval is explicit, execute with `OPENAI_API_KEY` supplied out of band:
+After this executable contract is committed and explicitly approved for execution:
 
 ```sh
 python3 -B -I reproduction/run_l1.py execute \
   --contract-commit <full-reviewed-commit>
 ```
 
-If the run reaches human review, record the explicit attestation afterward:
+If execution reaches human review, finalize only with the explicit external attestation:
 
 ```sh
 python3 -B -I reproduction/run_l1.py finalize \
@@ -148,3 +101,5 @@ python3 -B -I reproduction/run_l1.py finalize \
   --attestation </outside/repository/human-attestation.json> \
   --contract-commit <full-reviewed-commit>
 ```
+
+Never push from the loop runner.
