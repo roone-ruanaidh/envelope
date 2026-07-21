@@ -1,0 +1,4 @@
+candidate command could not start: [Errno 2] not found
+candidate command could not start: [Errno 12] out of memory
+declared foreground command left a surviving process
+make: *** [Makefile:25: verify-dispatch] Error 1
