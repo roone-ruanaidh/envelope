@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import signal
+import stat
 import time
 from pathlib import Path
 from typing import Any, Sequence
@@ -15,6 +16,9 @@ from candidate_transfer import TransferError, export_candidate
 
 class SnapshotError(RuntimeError):
     """The candidate workspace could not be frozen safely."""
+
+
+RUNTIME_CONTROL_PLACEHOLDERS = (".agents", ".codex", "AGENTS.md")
 
 
 def _status_value(pid: int, field: str) -> str | None:
@@ -93,6 +97,34 @@ def _quiesce(uid: int) -> list[int]:
     raise SnapshotError(f"candidate user still owns live processes after quiescence: {sorted(remaining)}")
 
 
+def _remove_empty_runtime_controls(root: Path, uid: int) -> None:
+    for name in RUNTIME_CONTROL_PLACEHOLDERS:
+        path = root / name
+        try:
+            observed = path.lstat()
+        except FileNotFoundError:
+            continue
+        if observed.st_uid != uid:
+            raise SnapshotError(f"runtime control placeholder has the wrong owner: {name}")
+        if name == "AGENTS.md":
+            if (
+                not stat.S_ISREG(observed.st_mode)
+                or observed.st_nlink != 1
+                or observed.st_size != 0
+            ):
+                raise SnapshotError(f"runtime control placeholder is not empty: {name}")
+            path.unlink()
+            continue
+        if not stat.S_ISDIR(observed.st_mode):
+            raise SnapshotError(f"runtime control placeholder is not an empty directory: {name}")
+        with os.scandir(path) as entries:
+            if next(entries, None) is not None:
+                raise SnapshotError(
+                    f"runtime control placeholder is not an empty directory: {name}"
+                )
+        path.rmdir()
+
+
 def _export_owned_candidate(
     root: Path,
     archive: Path,
@@ -121,6 +153,7 @@ def snapshot(root: Path, archive: Path, manifest: Path, report: Path) -> dict[st
     if any(os.path.lexists(path) for path in outputs):
         raise SnapshotError("candidate snapshot outputs must be new paths")
     terminated = _quiesce(root_stat.st_uid)
+    _remove_empty_runtime_controls(root, root_stat.st_uid)
     _export_owned_candidate(
         root,
         archive,

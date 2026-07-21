@@ -40,6 +40,8 @@ L9_ROOT = ROOT.parent / "l9-contract-reproduction"
 L9_RUNNER = L9_ROOT / "reproduction" / "run_l9.py"
 L10_ROOT = ROOT.parent / "l10-contract-reproduction"
 L10_RUNNER = L10_ROOT / "reproduction" / "run_l10.py"
+L11_ROOT = ROOT.parent / "l11-contract-reproduction"
+L11_RUNNER = L11_ROOT / "reproduction" / "run_l11.py"
 DERIVED_LOOPS = (
     {
         "id": "Q1/L2",
@@ -135,6 +137,18 @@ DERIVED_LOOPS = (
         },
         "root": L10_ROOT,
         "runner": L10_RUNNER,
+        "qualification": None,
+    },
+    {
+        "id": "Q1/L11",
+        "intervention": "runtime_control_placeholder_normalization",
+        "prior": {
+            "loop_id": "Q1/L10",
+            "result_commit": "805d106a69537d23d7fae3f7c6a718de4ba8e4fc",
+            "run_id": "20260721T210243Z-d16bed28",
+        },
+        "root": L11_ROOT,
+        "runner": L11_RUNNER,
         "qualification": None,
     },
 )
@@ -239,6 +253,28 @@ class CandidateTransferTests(unittest.TestCase):
                     "control path",
                 ):
                     candidate_transfer.build_manifest(root)
+
+    def test_snapshot_removes_only_empty_runtime_control_placeholders(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".agents").mkdir()
+            (root / ".codex").mkdir()
+            (root / "AGENTS.md").touch()
+            (root / "service.py").write_text("pass\n", encoding="utf-8")
+            candidate_snapshot._remove_empty_runtime_controls(root, os.getuid())
+            self.assertEqual({path.name for path in root.iterdir()}, {"service.py"})
+
+        for relative in ("AGENTS.md", ".agents/control", ".codex/control"):
+            with self.subTest(path=relative), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("control\n", encoding="utf-8")
+                with self.assertRaisesRegex(
+                    candidate_snapshot.SnapshotError,
+                    "runtime control placeholder",
+                ):
+                    candidate_snapshot._remove_empty_runtime_controls(root, os.getuid())
 
     def test_quiescence_accumulates_and_resignals_new_candidate_processes(self) -> None:
         signals: list[tuple[set[int], int]] = []
