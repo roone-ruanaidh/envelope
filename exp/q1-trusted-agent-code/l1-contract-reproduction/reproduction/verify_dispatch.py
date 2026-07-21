@@ -588,6 +588,16 @@ class CandidateBoundaryReportTests(unittest.TestCase):
 
 
 class ContractMechanicsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        state = tempfile.TemporaryDirectory(prefix="q1-l1-dispatch-test-state-")
+        self.addCleanup(state.cleanup)
+        root = Path(state.name)
+        self.enterContext(patch.object(run_l1, "EVIDENCE_ROOT", root / "evidence"))
+        self.enterContext(patch.object(run_l1, "RESULT_PATH", root / "RESULT.md"))
+        self.enterContext(
+            patch.object(run_l1, "EXECUTION_LOCK_PATH", root / "execute.lock")
+        )
+
     def _pending_generation(self, root: Path) -> tuple[Path, Path, dict[str, object]]:
         evidence = root / "evidence"
         evidence.mkdir()
@@ -1477,6 +1487,14 @@ class ContractMechanicsTests(unittest.TestCase):
                     20,
                     reserve_closure=False,
                 )
+
+    def test_nonempty_evidence_blocks_before_lima_preflight(self) -> None:
+        run_l1.EVIDENCE_ROOT.mkdir()
+        (run_l1.EVIDENCE_ROOT / "existing-run").mkdir()
+        with patch.object(run_l1, "_preflight_lima_records") as lima_records:
+            with self.assertRaisesRegex(RuntimeError, "human recovery is required"):
+                run_l1._assert_no_orphaned_run()
+        lima_records.assert_not_called()
 
     def test_evaluator_residue_unknown_blocks_a_new_run(self) -> None:
         with (
