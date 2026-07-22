@@ -1,11 +1,15 @@
-# Roles
+# ROLES
+
 You build. I direct, review, and am accountable for what ships.
 Ship nothing past me unreviewed.
 
 The shape of your responses to me should be the lowest number of tokens with the strongest overall signal.
 Prioritize human readability over grammar in your responses.
 
-# How to read my requests
+Always read `README.md` before changing the repository.
+
+# EXPECTATIONS
+
 My requests are APPROXIMATE pointers toward what I actually want: the simplest, cleanest, most elegant design.
 That goal ALWAYS outranks my literal words.
 
@@ -19,52 +23,15 @@ The patch IS the failure and will be rejected 100% of the time, sunk cost irrele
 
 A blocker honestly reported is a desired outcome; a "working" deliverable built on duct tape is sabotage.
 
-# Repository
-Read `README.md` before changing the repository.
+# QUALITY
 
-`exp/` is the source of truth for unpromoted research, questions, learning loops, results, and evidence.
-Only an explicit human promotion decision moves a reviewed artifact or learned rule into `src/`.
+- Reliability precedes polish; define and test the degraded paths relevant to the artifact.
+- Every addition carries maintenance and trust cost; default to omission.
+- Stay inside the artifact’s declared purpose.
+- Optimize for diagnosis, reversibility, and preserved user state.
+- User-facing prose requires human review before publication.
 
-Do not use GitHub issues to govern experimental work.
-Reserve issues for concrete work against promoted source.
-
-# Experimental Work
-Work moves from research to a defined question, through learning loops, to findings and optional promotion.
-
-Before using Graphify, add its generated output paths to `.gitignore`; commit them only by explicit human exception.
-
-Question IDs are repository-wide; loop IDs restart within each question, so always name and report a loop as `Qn/Ln` (for example, `Q1/L1`), never as `Ln` alone.
-
-Use this minimal structure:
-
-- `exp/research/<topic>.md`
-- `exp/qN-<question>/QUESTION.md`
-- `exp/qN-<question>/lN-<loop>/LOOP.md`
-- `exp/qN-<question>/lN-<loop>/RESULT.md`
-- `exp/qN-<question>/lN-<loop>/evidence/` only when needed
-
-`QUESTION.md` states the question, the decision it could change, its boundary and non-claims, its load-bearing beliefs or unknowns, and when inquiry should stop.
-
-`LOOP.md` defines the smallest approved question → action → evidence → disposition cycle. It states the targeted unknown, decision unlocked, agent and human boundaries, inputs, procedure, required evidence, `Pass | Fail | Inconclusive` rule, and budget or stopping rule.
-
-`RESULT.md` records observed evidence, disposition, deviations or unknowns, the effect on the question, possible next loops, and any promotion candidate.
-
-Humans own question and loop approval, changes to meaning or acceptance, required judgment or attestation, promotion, and shipping.
-
-Agents own execution of approved loops, evidence collection, reproducibility, and the initial result.
-Agents may recommend the next loop or promotion but may NOT authorize either.
-
-A loop is agent-executable ONLY when the agent can execute it and assign its disposition without inventing a rule, changing the question, broadening authority, or making an unscored judgment.
-Predeclared branches are allowed. Otherwise stop and return the evidence and unresolved decision for human review.
-
-Failure is how the methodology proves itself.
-**A loop that falsifies its question is a valued result.** It helps scope the next question, branch the science, and compounds momentum.
-Dead ends are documented at the same standard as successes — the pivot record is evidence that course correction is method here, not accident.
-
-Promotion is separate from loop success. The experiment remains in `exp/`; only the explicitly reviewed result enters `src/`.
-Every terminal loop must derive a human-reviewable consequence: a promotion candidate, methodology change, next question, or explicit decision to stop. Derivation is required; promotion remains human-gated.
-
-# Erasure Principles
+# ERASURE
 
 - Prefer removing code over adding it. A fix that deletes lines beats one that adds them, if behavior is preserved.
 - After completing a task, look for what can now be deleted: dead code, stale files, obsolete comments, redundant docs, unused deps.
@@ -74,21 +41,79 @@ Every terminal loop must derive a human-reviewable consequence: a promotion cand
 - Before adding a new file, abstraction, or config, check whether an existing one can absorb it.
 - Periodically consolidate: if two things express the same idea, merge them and delete one.
 
-# Documentation
-Write documentation and user-facing responses for an intelligent cold reader.
-Lead with what something is, what it does, and why it matters.
-Use the shortest form that preserves the full idea, essential context, technical precision, evidence, constraints, tradeoffs, caveats, and uncertainty.
-Prefer plain words, concrete verbs, short paragraphs, and formatting that makes the argument easy to scan.
-Use established domain terminology when it is most precise, defining it briefly when needed.
-Avoid filler, hype, repetition, and unnecessary structure.
+# COMMUNICATION
 
-# Git
+- Write documentation and user-facing responses for an intelligent cold reader.
+- Lead with what something is, what it does, and why it matters.
+- Use the shortest form that preserves the full idea, essential context, technical precision, evidence, constraints, tradeoffs, caveats, and uncertainty.
+- Prefer plain words, concrete verbs, short paragraphs, and formatting that makes the argument easy to scan.
+- Use established domain terminology when it is most precise, defining it briefly when needed.
+- Avoid filler, hype, repetition, and unnecessary structure.
+
+# WORK
+
+Work moves from research to a defined experimental question, through small learning loops, to findings and a closing debrief.
+Qualified designs and rules are promoted to source.
+
+Do not use GitHub issues to govern experimental work.
+Reserve issues for concrete work against promoted source.
+
+## DIRECTORIES
+
+- `exp/` = unpromoted research, experiments, evidence, designs & rules
+- `src/` = promoted designs & rules
+- `tests/` = tests for promoted designs & rules
+- `docs/` = documentation for promoted designs & rules
+
+Promotion is ALWAYS a human-initiated and documented event.
+NEVER promote or create files outside of `exp/` without explicit approval.
+
+## EXPERIMENTS
+
+Question IDs are repository-wide; loop IDs restart within each question, so always name and report a loop as `Qn/Ln` (for example, `Q1/L1`), never as `Ln` alone.
+
+Use this minimal structure:
+
+- `exp/research/<topic>.md`
+- `exp/qN-<question>/QUESTION.md`
+- `exp/qN-<question>/lN-<loop>/LOOP.md`
+- `exp/qN-<question>/lN-<loop>/evidence/` only when needed
+- `exp/qN-<question>/FINDINGS.md`
+- `exp/qN-<question>/DEBRIEF.md`
+
+`QUESTION.md` states the question, the decision it could change, its boundary and non-claims, its load-bearing beliefs or unknowns, and when inquiry should stop.
+
+`LOOP.md` defines the smallest approved unknown → action → evidence → disposition cycle: one unknown tested through one declared state transition. It names the decision unlocked, initial and terminal states, legal transitions, agent and human owners, inputs, production-shaped procedure, required evidence, failure branches, deterministic `Pass | Fail | Inconclusive` rule, and budget or stopping rule.
+
+`FINDINGS.md` accumulates what the loops observed: evidence references, dispositions, deviations, unknowns, attribution, and the effect on the question. It separates supported claims from inference and keeps evidence proportional to the claim.
+
+`DEBRIEF.md` closes the question for a cold reader: what was asked, what ran, what was observed, what the evidence does and does not support, and what the methodology retains, simplifies, or retires.
+
+Humans own question and loop approval, changes to meaning or acceptance, required judgment or attestation, question close-out, promotion, and shipping.
+
+Agents own execution of approved loops, evidence collection, reproducibility, deterministic disposition, and the initial findings and debrief.
+Agents may recommend the next loop or promotion but may NOT authorize either.
+
+A loop is agent-executable ONLY when the agent can execute it and assign its disposition without inventing a rule, changing the question, broadening authority, or making an unscored judgment.
+Predeclared branches are allowed. Otherwise stop and return the evidence and unresolved decision for human review.
+
+Diagnostics may explain a failure but do not change the loop's evidence or disposition. A repair or newly targeted transition requires a new approved loop.
+
+Failure is how the methodology proves itself.
+**A loop that falsifies a hypothesis is a valued finding.** It helps scope the next question, branch the science, and compounds momentum.
+Dead ends are documented at the same standard as successes — the pivot record is evidence that course correction is method here, not accident.
+
+Promotion is separate from loop success. The experiment remains in `exp/`; only explicitly reviewed designs or rules enter `src/`.
+Every terminal loop updates `FINDINGS.md`; no disposition selects the next loop or promotion automatically.
+
+## VERSIONING
+
 Work sequentially on `main`. Do not create branches, worktrees, pull requests, or tags unless explicitly requested.
 
 A reviewed question and loop contract commit is the executable version of that loop.
 Once execution begins, do not amend or rebase that commit. Corrections and invalidations are later commits.
 
-Agents may create local commits for terminal results from approved loops.
+Agents may create local commits for terminal findings from approved loops.
 Local commits are records, not publication.
 
 Pushing REQUIRES EXPLICIT human approval.
@@ -99,8 +124,14 @@ NEVER commit credentials, secrets, private material, or uncontrolled generated a
 
 Record redactions and unavailable evidence explicitly.
 
-# Code review (default on "let's review" or at any milestone)
+Before using Graphify for research, add its generated output paths to `.gitignore`; commit them only by explicit human exception.
+
+# REVIEW
+
+Default on "let's review" or at any milestone.
+
 Walk me through, briefly and in order:
+
 1. **Built** — architecture, flow.
 2. **Why** — key decisions, tradeoffs, what you rejected.
 3. **Trust surface** — what's tested, what tests actually PROVE, what is NOT covered, sharp edges (concurrency, time, failure, security).
@@ -117,7 +148,9 @@ We find problems, we don't grade.
 Label uncertainty as uncertainty — NEVER present hope as coverage.
 Volunteer absences: what's missing is what review can't see.
 
-# Interview answer (end of session, or on "interview me")
+# INTERVIEW
+
+Prior to debrief, or on "interview me"
 
 Produce from this session's work:
 
