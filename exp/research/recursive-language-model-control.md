@@ -17,18 +17,19 @@ The cleaner target is a deterministic recursive controller with stochastic seman
 5. Lean proves invariants of the plan language and controller. It does not prove that an external model response is true or that a provider call happened.
 6. Python is the best research workbench and a poor security or evidence boundary. Bend is potentially useful for regular pure computation, not the network-bound control plane. Bend2 is not yet a qualifiable dependency because no stable public implementation or technical specification was available at the cutoff.
 
-This extends the existing qualified-harness design rather than replacing it. The durable journal remains authoritative; the model-visible context remains a bounded projection. The new contribution is to make recursive control an explicit, checkable plan instead of a Python program improvised by the model.
+This extends the existing qualified-harness design rather than replacing it: recursive control becomes an explicit, checkable plan while the durable journal remains authoritative.
 
 ## What RLMs establish
 
 The original RLM design stores the prompt as a symbolic variable in a Python REPL. The root model sees metadata rather than the full prompt, emits code to inspect or transform slices, and can call another model over selected material. Results return to the REPL, while only truncated standard output enters the root model's conversation. A final value is also returned through the environment rather than copied through the entire conversation. The paper identifies the symbolic prompt handle, environment-held final answer, programmatic recursive calls, and REPL as essential features ([paper, version 3](https://arxiv.org/html/2512.24601v3)).
 
-That separation is real and valuable:
+### A memory hierarchy for the model
 
-- **Large data is addressable, not resident.** Text, code, search results, intermediate values, and evidence can live behind handles.
-- **Code performs exact work.** Parsing, searching, filtering, counting, hashing, sorting, deduplication, schema validation, and deterministic reduction need not consume model context or inference.
-- **Context becomes a projection.** The model receives the smallest view needed for the current semantic decision.
-- **Recursive calls become ordinary effects.** A program can generate prompts from data, call leaves in batches, and aggregate the returned values.
+The lasting RLM idea is a memory hierarchy rather than a larger prompt. The durable journal and content-addressed artifacts are authoritative memory; indexes and materialized views form the working set; the context window is a small, expensive cache. Code—not the model—chooses the smallest sufficient projection to place in that cache. Deterministic code is the ordinary processor and controller; the model is a semantic coprocessor invoked only at declared semantic unknowns.
+
+This makes context construction a cache policy and prompts versioned interfaces to semantic operations. Model outputs are observations, not commands or automatically accepted facts. Summaries are lossy cache compression: they retain provenance while their sources remain addressable and authoritative. Recursive calls become semantic demand paging—when one projection is insufficient, the controller may admit and budget another bounded projection or semantic call.
+
+“When deterministic computation runs out” must mean that an explicit semantic unknown remains, not that code is inconvenient to write. Parsing, routing, counting, scheduling, validation, authorization, and accounting do not run out. Interpretation, synthesis, relevance, and ambiguous judgment sometimes do. The target is to localize every nondeterministic decision to a named semantic operation; everything around those operations remains inspectable and replayable.
 
 The reported evaluations support the mechanism, not a universal depth rule. Performance varies by task and model; depth zero or one often beats deeper recursion, while some tasks benefit from depth two or three. The paper also reports syntax and finalization failures, large run-to-run variation in child-call counts, long-tailed cost and latency, weak models spawning excessive calls, and the difficulty of using one decomposition prompt across models. Its own limitations call out guardrails, exploding subcall costs, asynchronous execution, and sandboxing ([evaluation and limitations](https://arxiv.org/html/2512.24601v3#S5)).
 
