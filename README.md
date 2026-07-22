@@ -32,7 +32,7 @@ Each milestone builds on the last:
 | 7 | Publish initial findings | Not Started |
 
 Envelope is built through experimentation.
-[`exp/`](exp/) holds questions, learning loops, results, and debriefs.
+[`exp/`](exp/) holds questions, learning loops, findings, evidence, and debriefs.
 
 **Designs leave `exp/` for `src/` only through explicit promotion.**
 
