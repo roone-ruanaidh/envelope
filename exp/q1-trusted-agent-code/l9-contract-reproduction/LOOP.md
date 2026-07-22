@@ -1,5 +1,7 @@
 # Q1/L9 — compatible structured completion
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can Luna produce and declare a candidate when the unchanged completion alternatives are carried in the provider-supported root-object shape?
 
 Q1/L8 authenticated successfully and passed candidate login, provisioning, and isolation. OpenAI rejected the root `oneOf` output schema before generation, so Luna never acted. Q1/L9 corrects only that wire format. It is troubleshooting, not a benchmark, reliability claim, or model comparison.

@@ -1,5 +1,7 @@
 # Q1/L8 — authenticated public-safe invocation
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the frozen lease-service workload proceed beyond Q1/L7's authentication failure when bearer acceptance is checked before measured provisioning and provider-masked key fingerprints are removed before evidence indexing?
 
 Q1/L7 passed the evaluator, isolation, candidate provisioning, boundary, and login mechanics. Its one agent process reached OpenAI but received `401 invalid_api_key`, so no model completion or task-cost observation exists. Q1/L8 tests only the two controls earned from that run. It is troubleshooting, not a benchmark, reliability claim, or model comparison.

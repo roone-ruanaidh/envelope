@@ -1,0 +1,38 @@
+{
+  "completion": {
+    "service_command": [
+      ".venv/bin/python",
+      "service.py"
+    ],
+    "status": "declared_complete"
+  },
+  "contract_commit": "cac2946b0915feab99b87ce5a273b169aec5bf1b",
+  "files": [
+    {
+      "lines": 6,
+      "path": "Makefile",
+      "sha256": "4d136d57d8d5aefb0ee429337bf14e604fc42420edb84bf61d36827f8f2d9207",
+      "size": 135
+    },
+    {
+      "lines": 982,
+      "path": "service.py",
+      "sha256": "854f0a2caabcd02a09721b5052eaac2bf7fd90d8334c6708ced5e3f5831786fa",
+      "size": 32393
+    }
+  ],
+  "run_id": "20260721T213105Z-93108211",
+  "snapshot": {
+    "quiesced": true,
+    "terminated_process_count": 2
+  },
+  "source_evidence_commit": "28a5a60",
+  "transfer": {
+    "archive_sha256": "c5fba0a89f66da9979ae59d4e032b434ac0864498e49b8dfc897c7e0c87c1f02",
+    "evaluator_archive_sha256": "c5fba0a89f66da9979ae59d4e032b434ac0864498e49b8dfc897c7e0c87c1f02",
+    "evaluator_manifest_sha256": "ce1d7baa0a0b52792f96585ac417b158ae4186e677cda7b3e3990390ce20f5af",
+    "manifest_sha256": "ce1d7baa0a0b52792f96585ac417b158ae4186e677cda7b3e3990390ce20f5af",
+    "source_file_count": 2
+  },
+  "version": 1
+}

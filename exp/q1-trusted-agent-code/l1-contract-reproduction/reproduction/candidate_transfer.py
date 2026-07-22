@@ -1,5 +1,9 @@
 """Create and verify the exact candidate source transfer artifact."""
 
+# Retained after Q1 distillation because Q1/L11 successfully used this exact
+# primitive to export and verify a transferred candidate. It remains Q1-specific,
+# unpromoted research code; its verification and evidence are at commit 28a5a60.
+
 from __future__ import annotations
 
 import argparse

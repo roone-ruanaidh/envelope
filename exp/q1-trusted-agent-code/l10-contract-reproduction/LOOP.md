@@ -1,5 +1,7 @@
 # Q1/L10 — explicit completion scalar types
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can Luna act on the frozen workload once every constant-valued completion field also declares its provider-required JSON type?
 
 Q1/L9 passed the root-object boundary, then OpenAI rejected the first `status` field because `const` lacked an explicit `type`. Luna still did not infer or edit. Q1/L10 adds only `"type": "string"` to both unchanged status fields and verifies that invariant.

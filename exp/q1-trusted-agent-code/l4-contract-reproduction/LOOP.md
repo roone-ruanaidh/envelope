@@ -1,5 +1,7 @@
 # Q1/L4 — qualified candidate boundary
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the frozen lease-service workload reach task execution after simplifying the candidate profile and qualifying the complete boundary path?
 
 Q1/L3 reached candidate bootstrap but stopped before model invocation. Its verifier discarded the probe error, and a later disposable diagnostic found three overlapping profile rules whose removal made the same boundary assertions, probe, and pass rule succeed. Q1/L4 tests that narrow correction once. Its result determines whether Q1 gains a task observation or another harness finding; it does not predetermine what follows. This is a troubleshooting run, not a benchmark, reliability claim, or model comparison.
@@ -32,7 +34,7 @@ Humans still own acceptance meaning, source attestation, promotion, publication,
 
 Required evidence is the Q1/L1 set plus Q1/L4 context and authorities and the complete qualification record. Its index and completion receipt bind the reviewed commit, exact command sequence, boundary report, teardown, source, residue, redactions, and setup ledger. Qualification time is setup, never task cost. Agent, candidate-VM, evaluator, trusted-machine, human, and wall costs remain separate; missing observations remain `unknown`.
 
-`Accepted` (Pass) still requires every non-human gate plus affirmative human review. `Rejected` (Fail) still requires an admissible final candidate failure or concrete human source finding. A started qualification failure, or infrastructure, evidence, or undefined-boundary failure after measurement begins, is `Inconclusive`. If every non-human gate passes, stop at `PendingHumanReview` until a human applies the unchanged [source checklist](../l1-contract-reproduction/reproduction/HUMAN_REVIEW.md). No disposition selects the next research branch.
+`Accepted` (Pass) still requires every non-human gate plus affirmative human review. `Rejected` (Fail) still requires an admissible final candidate failure or concrete human source finding. A started qualification failure, or infrastructure, evidence, or undefined-boundary failure after measurement begins, is `Inconclusive`. If every non-human gate passes, stop at `PendingHumanReview` until a human applies the unchanged source checklist. No disposition selects the next research branch.
 
 ## Verify and run
 

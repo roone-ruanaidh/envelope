@@ -1,5 +1,7 @@
 # Q1/L7 — live candidate Lima shape
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the frozen lease-service workload reach its first agent invocation after binding candidate-environment evidence to Lima's live empty-field representation?
 
 Q1/L6 passed exact qualification, evaluator validation, candidate bootstrap, and the boundary probe. It then stopped before login with zero agent attempts because the trusted candidate observer expected fields that the live Lima record omits. A disposable no-model diagnostic found the exact delta: candidate `config` omits empty `mounts`, evaluator-only `param`, and inactive `vmOpts.qemu`; the top-level candidate record also omits `param`. The diagnostic VM was deleted and zero candidate residue was verified. Q1/L7 tests the mechanical observer correction once. It is troubleshooting, not a benchmark, reliability claim, or model comparison.

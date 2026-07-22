@@ -15,12 +15,10 @@ Q1 asked what it costs to move agent-produced code from declared to accepted com
 
 Every observed terminal failure came from the environment or harness. This does **not** establish that Luna's code passed: candidate correctness, remediation, human review, and cost-to-acceptance were never observed. It establishes that attribution matters and that trust machinery can become both the dominant cost center and the dominant failure surface before task quality is measured.
 
-Q1 added 313,410 repository lines; 308,142—98.3%—are sealed evidence and repeated authority snapshots, not application code. The active Python harness is about 20.8K lines. In Q1/L11, Luna spent 833 seconds and reported 4.04M input tokens, produced a reproducible 982-line service, and transferred it successfully; the evaluator then failed before typing. Monetary and human cost remain unknown.
-
-The pre-run prediction was right only at the layer level: failure occurred downstream of model execution, but permission traversal—not close-out, schema, or recording—was the cause.
+At terminal commit `63ec75a`, Q1 contained 332,795 text lines; 308,142—92.6%—were sealed evidence and repeated authority snapshots, not application code. Its non-evidence Python surface was 22,064 lines. In Q1/L11, Luna spent 833 seconds and reported 4.04M input tokens, produced a reproducible 982-line service, and transferred it successfully; the evaluator then failed before typing. Monetary and human cost remain unknown.
 
 ## What changes
 
-- **Retain:** `QUESTION → LOOP → FINDINGS → DEBRIEF`, explicit human gates, deterministic dispositions, separate cost categories, indexed evidence, cleanup checks, and preserved unknowns.
+- **Retain:** `QUESTION → LOOP → FINDINGS → DEBRIEF`, explicit human gates, deterministic dispositions, separate cost categories, indexed evidence, cleanup checks, preserved unknowns, and the unpromoted candidate-transfer primitive that succeeded in Q1/L11.
 - **Simplify:** one unknown and one state transition per loop; production-shaped qualification; explicit states, owners, evidence, failure branches, and stopping rules; evidence proportional to the claim.
 - **Retire:** Q1 as an active execution path, monolithic first questions, mocks that substitute for live boundaries, and repairing a harness merely to complete the original plan. Preserve Q1 as evidence.

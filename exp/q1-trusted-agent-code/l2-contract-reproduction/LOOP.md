@@ -1,5 +1,7 @@
 # Q1/L2 — corrected contract reproduction
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the approved lease-service loop produce the missing cost observation after its dispatch tests are made hermetic?
 
 Q1/L1 ended `Inconclusive` before model invocation because three synthetic dispatch tests read the live run evidence directory. Q1/L2 repeats that workload once after isolating their mutable test state. It is a troubleshooting run, not a benchmark, model comparison, reliability claim, or preselected next research branch.
@@ -23,7 +25,7 @@ The workload remains `q1-lease-service-v1`:
 - one fresh isolated candidate VM, stdin API-key authentication, one initial invocation, and at most one same-thread remediation;
 - the same candidate-visible contract, prompts, completion schema, managed environment, snapshot, transfer, clean bootstrap, strict typing, sealed behavior suite, and candidate-identity checks;
 - the same pre-existing `q1-l1-evaluator`, resource namespace, fingerprint authority, isolation envelope, and zero-residue rule;
-- the exact [Q1/L1 human source checklist](../l1-contract-reproduction/reproduction/HUMAN_REVIEW.md), reached only after every non-human gate passes.
+- the exact Q1/L1 human source checklist, reached only after every non-human gate passes.
 
 The `q1-l1` infrastructure and protocol names identify that frozen workload; they do not identify this loop's evidence or result.
 

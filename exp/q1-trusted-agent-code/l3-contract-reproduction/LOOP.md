@@ -1,6 +1,8 @@
 # Q1/L3 — parent-bounded command streams
 
-> **Question:** Can the [frozen lease-service workload](../l1-contract-reproduction/README.md) produce a valid cost observation when command-stream limits are enforced by the parent instead of inherited as a child-wide file-size limit?
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
+> **Question:** Can the frozen lease-service workload produce a valid cost observation when command-stream limits are enforced by the parent instead of inherited as a child-wide file-size limit?
 
 Q1/L2 reached candidate creation, then `limactl create` inherited the harness's 32 MiB stream limit as `RLIMIT_FSIZE` and failed while creating its 40 GiB disk. Q1/L3 changes that one harness mechanism. It is a troubleshooting run, not a benchmark, reliability claim, model comparison, or selected next research branch.
 
@@ -36,7 +38,7 @@ There is no harness repair, execution retry, or second Q1/L3 run. A later hypoth
 
 Terminal evidence is the Q1/L1 set plus `context.json`, this contract, its launcher, the incorporated workload contract, and a copy of the qualification receipt and command record. Qualification time is labeled setup, not task cost. Agent, candidate-VM, evaluator, trusted-machine, human, and wall intervals remain separate; unavailable observations remain `unknown`, never zero.
 
-`Accepted`, `Rejected`, and `Inconclusive` use the unchanged Q1/L1 rules. If every non-human gate passes, stop at `PendingHumanReview`; no result commit exists until a human applies the unchanged [source checklist](../l1-contract-reproduction/reproduction/HUMAN_REVIEW.md). No disposition selects a next loop or authorizes promotion.
+`Accepted`, `Rejected`, and `Inconclusive` use the unchanged Q1/L1 rules. If every non-human gate passes, stop at `PendingHumanReview`; no result commit exists until a human applies the unchanged source checklist. No disposition selects a next loop or authorizes promotion.
 
 ## Verify and run
 

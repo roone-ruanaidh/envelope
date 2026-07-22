@@ -1,5 +1,7 @@
 # Q1/L6 — hermetic candidate-home evidence
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the frozen lease-service workload reach its first agent invocation after making candidate-home redaction and its evaluator test environment-independent?
 
 Q1/L5's exact candidate-boundary qualification passed. Measured execution then stopped in evaluator dispatch validation with zero agent attempts because the test derived candidate home from the evaluator's home basename. On the evaluator, `HOST_HOME` and the constructed `CANDIDATE_HOME` were identical, so the first replacement consumed both values and the test demanded an impossible second redaction record. Q1/L6 tests the smallest correction once. It is troubleshooting, not a benchmark, reliability claim, or model comparison.

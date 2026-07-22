@@ -1,5 +1,0 @@
-time="2026-07-21T01:18:54-06:00" level=info msg="Terminal is not available, proceeding without opening an editor"
-time="2026-07-21T01:18:54-06:00" level=info msg="Attempting to download the image" arch=aarch64 digest="sha256:3d8db37fa9a8a0c8676dfc0ee3eb41fd0049d66cb055a792bddc8f4123443ae1" location="https://cloud-images.ubuntu.com/releases/resolute/release-20260627/ubuntu-26.04-server-cloudimg-arm64.img"
-time="2026-07-21T01:18:54-06:00" level=info msg="Using cache `[HOST_HOME]/Library/Caches/lima/download/by-url-sha256/a107bf1612c9d3f79b7950375e4e55dbbb0d240c5a9a780a7dd6a1e4b331ccab/data`"
-time="2026-07-21T01:18:54-06:00" level=info msg="Converting \"[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b/image\" (qcow2) to a raw disk \"[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b/disk\""
-time="2026-07-21T01:18:54-06:00" level=fatal msg="failed to convert `[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b/image` to `[HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b/disk`: truncate [HOST_HOME]/.lima/q1-l1-candidate-20260721t071826z-10ec801b/disk.lima-3406702311.tmp: file too large"

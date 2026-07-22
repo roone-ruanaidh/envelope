@@ -1,5 +1,7 @@
 # Q1/L11 — consistent candidate snapshot boundary
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** What do Luna's candidate and evaluator results show once Codex runtime placeholders no longer block candidate transfer?
 
 Q1/L10 produced the first Luna candidate, but the trusted snapshotter rejected the empty `.agents` placeholder left by the Codex invocation before any candidate gate ran. Q1/L11 removes only exact empty top-level runtime placeholders after candidate processes are quiesced. Control-path content, nested controls, links, and wrongly owned placeholders remain inadmissible.

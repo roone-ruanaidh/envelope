@@ -6,7 +6,7 @@
 
 ## What this is
 
-This note is a compact model for interpreting Q1/L1 after its `RESULT.md` exists and deciding what question the next human-approved loop should answer.
+This note is a compact model for interpreting Q1/L1 after its findings are recorded and deciding what question the next human-approved loop should answer.
 
 It does not choose or authorize Q1/L2. Its purpose is to prevent one run from being mistaken for a distribution, a state diagram from being mistaken for a statistical model, or harness-training results from being mistaken for inference pricing evidence.
 
@@ -164,7 +164,7 @@ Lima isolation does not remove identity and access from the model. It fixes or e
 
 ## Reading Q1/L1 after completion
 
-Read `RESULT.md` in this order:
+Read Q1's [`FINDINGS.md`](../q1-trusted-agent-code/FINDINGS.md) in this order:
 
 1. **Admissibility:** Was the disposition supported, or did infrastructure/evidence failure make the run inconclusive?
 2. **Path:** Which declared and unexpected transitions actually occurred?

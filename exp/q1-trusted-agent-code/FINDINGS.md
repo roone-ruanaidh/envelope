@@ -1,45 +1,31 @@
 # Q1 findings — harness before task
 
-Q1/L1–L3 produced useful harness evidence, but no cost-to-accepted-completion observation. All three runs stopped `Inconclusive` before model invocation. Together they show that the experiment qualified individual repairs without qualifying the complete path to the task.
+All eleven loops ended `Inconclusive` before trusted candidate evaluation. The ledger preserves each approved contract, terminal attribution, observable agent and wall time, and the Git commits containing the complete evidence.
 
-## Observed
+| Loop | Boundary reached | Terminal cause | Agent / wall time | Commits |
+|---|---|---|---|---|
+| [Q1/L1](l1-contract-reproduction/LOOP.md) | Evaluator dispatch | Synthetic dispatch tests read live run state | 0 / 1.4s | Contract `6abb9be`; terminal `c069bc0` |
+| [Q1/L2](l2-contract-reproduction/LOOP.md) | Candidate provisioning | A process-wide file-size limit blocked the VM disk | 0 / 29.0s | Contract `d7292b3`; terminal `de0d74a` |
+| [Q1/L3](l3-contract-reproduction/LOOP.md) | Candidate boundary | The verifier collapsed the probe failure to `probe_command_failed` | 0 / 204.8s | Contract `aad8f60`; terminal `42b4c48` |
+| [Q1/L4](l4-contract-reproduction/LOOP.md) | Exact boundary qualification | Bubblewrap collided with the provisioned `.codex` directory | 0 / 177.4s | Contract `bc986bc`; terminal `4e83baa` |
+| [Q1/L5](l5-contract-reproduction/LOOP.md) | Evaluator dispatch | Candidate and evaluator home identities collided | 0 / 2.8s | Contract `30e9d15`; terminal `ae60848` |
+| [Q1/L6](l6-contract-reproduction/LOOP.md) | Live Lima observation | Live candidate-configuration inspection exited `125` | 0 / 208.3s | Contract `8c96fd1`; terminal `f00af3c` |
+| [Q1/L7](l7-contract-reproduction/LOOP.md) | Provider authentication | Both transports returned `401 invalid_api_key` before generation | 17.2s / 225.2s | Contract `3ca2542`; terminal `8ea3946`; public projection `9de1e94` |
+| [Q1/L8](l8-contract-reproduction/LOOP.md) | Provider schema | Structured Outputs rejected a root `oneOf` before generation | 1.8s / 211.9s | Contract `9846c7c`; terminal `744a139` |
+| [Q1/L9](l9-contract-reproduction/LOOP.md) | Provider schema | Constant-valued fields lacked explicit string types | 1.3s / 210.4s | Contract `4b16fa7`; terminal `5b1e496` |
+| [Q1/L10](l10-contract-reproduction/LOOP.md) | Candidate export | The snapshotter rejected its own empty `.agents` runtime placeholder | 810.6s / 1,018.3s | Contract `c35cdb3`; terminal `805d106` |
+| [Q1/L11](l11-contract-reproduction/LOOP.md) | Trusted typing gate | A mode-`0700` parent blocked Bubblewrap's UID `65534` from traversing to the transferred candidate | 833.3s / 1,047.3s | Contract `cac2946`; terminal `28a5a60` |
 
-- [Q1/L1](l1-contract-reproduction/RESULT.md) stopped when synthetic dispatch tests read live run state. Q1/L2 isolated that state.
-- [Q1/L2](l2-contract-reproduction/RESULT.md) reached candidate creation, where the command-stream limit was inherited as a process-wide file-size limit and blocked the VM disk. Q1/L3 moved stream bounds to the parent.
-- [Q1/L3](l3-contract-reproduction/RESULT.md) reached candidate bootstrap, then collapsed the sandbox failure to `probe_command_failed`. Its [verifier](l1-contract-reproduction/reproduction/verify_candidate_boundary.py) captured the probe error but discarded it, while the terminal record retained 2,425 lines of provisioning output.
-- A disposable post-run diagnostic reproduced the Q1/L3 path on pinned Codex `0.144.6`. The managed profile combined an inherited `:workspace` policy with redundant custom rules: an unsupported readable glob, a deny for an absent `.agents` path, and inheritance that contradicted the probe's outside-read boundary. Deleting only those three entries made the original full boundary verifier pass. This diagnostic was outside Q1/L3 measurement and is not Q1/L3 evidence.
+Post-run diagnostics attributed Q1/L3 to overlapping sandbox rules (first recorded at `bc986bc`) and Q1/L6 to mocked fields absent from Lima's canonical state (first recorded at `3ca2542`). Neither was terminal evidence.
+
+Q1/L10 reported 4,124,256 input tokens; Q1/L11 reported 4,044,907. Earlier invocations produced no usable token report. The retained per-loop accounting and unavailable-observation records keep agent, machine, human, and wall categories separate.
 
 ## Finding
 
-The isolation goal was not the problem. Multiple overlapping mechanisms expressed it differently, tests mocked the real boundary, qualification stopped before that boundary, and the useful failure stream was discarded. Complexity therefore caused both the failure and the delay in identifying it.
+The isolation goal was not the problem. Overlapping controls, mocks of live boundaries, provider incompatibilities, and discarded failure detail made the harness both the dominant observed cost center and the terminal failure surface. Qualification must exercise the exact production path, one unknown and one state transition at a time.
 
-The narrow correction preserves the declared boundary: define the custom profile directly with its existing minimal-runtime, workspace, protected-path, authentication, and network rules. Do not inherit a broader built-in profile or regulate paths absent from the candidate.
+This does not establish whether Luna's candidate would pass. Candidate typing, behavior, remediation, human review, monetary cost, and cost-to-acceptance remain unknown.
 
-## What changes
+## Retained code
 
-1. Delete `extends = ":workspace"`, `.agents = "deny"`, and `"**/AGENTS.md" = "read"` from the candidate profile. Keep the exact top-level `AGENTS.md` rule and reject candidate-created Codex control paths at transfer.
-2. Preserve bounded probe exit, stdout, stderr, and a fixed failure phase. Remove the unparsed `findmnt --json` dump.
-3. Qualify the exact pre-agent path—create, bootstrap, the same boundary assertions, probe, and pass rule, then teardown—through the implementation used by execution. A disk-only path is insufficient.
-4. Defer broader runner redesign until after this observation. The result selects no next inquiry or change.
-
-## What stays
-
-The candidate remains a fresh no-mount VM with no command network, unreadable authentication and outside control, protected contract and toolchain, and a writable workspace. The sealed evaluator, one-shot execution, bounded remediation, separate cost categories, deterministic disposition, and human source-review gate remain unchanged.
-
-## Q1/L4 handoff
-
-The separately reviewed Q1/L4 contract adopts this narrow correction, bounded probe diagnostics, and exact pre-agent qualification with zero residue. This finding changes no workload, acceptance rule, disposition, or human boundary; Q1/L4 execution still requires separate explicit approval.
-
-## Q1/L5 observation
-
-Q1/L5's exact boundary qualification passed, then measured execution stopped in evaluator dispatch validation with zero agent attempts. The test derived candidate home from the evaluator's home basename, making `HOST_HOME` and `CANDIDATE_HOME` identical; one redaction label necessarily consumed both values. This is environment-dependent test state and a real candidate-home derivation error, not a model result.
-
-The indexed `redactions.json` generically says the API key was sent through stdin. The command record and run state show it was only available to the runner: no candidate login or `codex exec` occurred. Preserve the bound evidence unchanged and treat that sentence as inaccurate. Q1/L5's narrower outer stopping sentence was also an agent drafting error; the controlling human approval now permits at most Q1/L5–L9 until the first recorded agent invocation. Neither correction changes Q1/L5's `Inconclusive` disposition.
-
-## Q1/L6 observation
-
-Q1/L6 passed the prior dispatch failure and bootstrapped a boundary-valid candidate, then its trusted Lima observer rejected the live record before login with zero agent attempts. A disposable no-model diagnostic showed that Lima canonically omits the candidate's empty `mounts`, evaluator-only `param`, and inactive `vmOpts.qemu`, while the mock fixture invented them. The diagnostic VM was deleted and only the evaluator remains. Q1/L7 will require those candidate omissions exactly, keep evaluator and unknown-field checks strict, and change no workload or acceptance meaning.
-
-## Q1/L7 observation
-
-Q1/L7 passed the harness through candidate capture, API-key login, and the first `codex exec`. Both API transports then returned `401 invalid_api_key` before model generation; no completion or usage event exists, so tokens and charge remain `unknown`. The closed terminal tree is preserved locally but withheld from Git because the provider echoed a stable masked key fingerprint. Q1/L7 recorded one agent invocation, ending the approved troubleshooting sequence. A publishable redacted projection, credential replacement, access preflight, or later loop requires a new human decision.
+[`candidate_transfer.py`](l1-contract-reproduction/reproduction/candidate_transfer.py) remains as unpromoted research code because Q1/L11 successfully used that exact primitive to export and verify the only transferred candidate. Its verification code and complete execution evidence remain at terminal commit `28a5a60`; reuse is not qualified.

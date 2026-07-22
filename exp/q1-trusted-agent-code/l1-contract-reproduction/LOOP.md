@@ -1,5 +1,7 @@
 # Q1/L1 — contract reproduction
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** What does it cost to move one agent-produced lease service from declared completion to accepted completion under a fixed contract and settlement procedure?
 
 This loop contributes one configuration-specific observation to [Q1](../QUESTION.md). It can inform later human decisions about verification, evidence, remediation, and review, but authorizes no next loop or promotion. It does not establish population reliability, production readiness, security outside the declared boundary, or correctness beyond the public contract.
@@ -13,8 +15,8 @@ The implementation agent is pinned to `codex-cli 0.144.6`, `gpt-5.6-luna`, and r
 ## Authorities and boundaries
 
 - The reviewed question-and-loop commit on clean `main` is the executable contract. Execution and finalization require its full object ID and exact `HEAD`; the commit is never amended or rebased after execution begins.
-- [`public/contract/`](public/contract/) is the complete candidate-visible acceptance contract. [`evaluator/`](evaluator/) and its reference and defect fixtures are sealed.
-- [`reproduction/`](reproduction/) contains the reviewed provisioning, agent-control, transfer, evidence, accounting, and settlement authorities. `evaluator-authority.json` pins the already prepared, dedicated `q1-l1-evaluator`; the measured run never creates, repairs, updates, or upgrades it.
+- `public/contract/` is the complete candidate-visible acceptance contract. `evaluator/` and its reference and defect fixtures are sealed.
+- `reproduction/` contains the reviewed provisioning, agent-control, transfer, evidence, accounting, and settlement authorities. `evaluator-authority.json` pins the already prepared, dedicated `q1-l1-evaluator`; the measured run never creates, repairs, updates, or upgrades it.
 - The candidate receives one fresh Lima VM with no host mounts, no command network, protected contract, toolchain, and control paths, and a writable candidate workspace. Managed requirements prevent candidate-written configuration from weakening that boundary. Codex alone may reach the API control plane.
 - `OPENAI_API_KEY` enters `codex login --with-api-key` through stdin, is never forwarded to the candidate environment or retained as evidence, and is removed before candidate teardown. Its absence means execution has not begun.
 - Humans own this contract, acceptance meaning, final source attestation, promotion, publication, and shipping. Agents own the approved procedure, reproducible public-safe evidence, deterministic non-human disposition, result draft, and terminal local commit. Agents never infer human attestation.
@@ -28,7 +30,7 @@ The implementation agent is pinned to `codex-cli 0.144.6`, `gpt-5.6-luna`, and r
 5. **Run every non-human gate.** For each completed attempt, run all three gates even when typing fails: clean locked dependency bootstrap; strict mypy over the complete read-only candidate; and the sealed black-box behavioral suite in a no-route, bounded Bubblewrap environment. Reverify the candidate manifest after all gates. Candidate typing or behavioral findings are admissible failures. Bootstrap, wrapper, isolation, resource, integrity, report, or evidence faults are `Inconclusive`.
 6. **Remediate once when eligible.** Only an initial completed candidate with an admissible typing or behavioral failure may resume the same Codex thread. Feedback is limited to failed gate names, typing output, failed behavioral records, startup error, and candidate service-log tail; it excludes passed hidden scenarios, evaluator source, reference behavior, defect identities, and evaluator-validation results. A completed remediation receives a fresh transfer, bootstrap, typing, and behavior run. If remediation produces no completed candidate, preserve the last declared snapshot as evidence and settle `Inconclusive`. No third invocation exists.
 7. **Settle and stop.** A final admissible candidate failure is `Rejected`; an infrastructure, evidence, or undefined-boundary fault is `Inconclusive`. A closed automatic terminal generation produces the local result commit and stops. If every non-human gate passes, clean exact run-scoped state, close and verify the pending evidence generation, draft `RESULT.md`, and stop at `PendingHumanReview`.
-8. **Finalize only explicit review.** Supply the exact final source, foreground argv, manifest hash, and candidate-identity hash with [`HUMAN_REVIEW.md`](reproduction/HUMAN_REVIEW.md). `Affirmative` settles `Accepted`. `Negative` must identify a declared clause and an existing source line or file, foreground-argv argument, or required missing path; it settles `Rejected`. No response or any other response remains pending. Human review is final and non-remediating.
+8. **Finalize only explicit review.** Supply the exact final source, foreground argv, manifest hash, and candidate-identity hash with `HUMAN_REVIEW.md`. `Affirmative` settles `Accepted`. `Negative` must identify a declared clause and an existing source line or file, foreground-argv argument, or required missing path; it settles `Rejected`. No response or any other response remains pending. Human review is final and non-remediating.
 
 ## Limits and stopping rules
 

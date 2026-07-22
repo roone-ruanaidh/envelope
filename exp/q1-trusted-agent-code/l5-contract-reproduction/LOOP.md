@@ -1,5 +1,7 @@
 # Q1/L5 — single Codex metadata authority
 
+> **Archived:** Executed contract. Q1 is retired; its executable authorities and terminal evidence remain in Git history.
+
 > **Question:** Can the frozen lease-service workload reach task execution when Codex alone protects an initially absent workspace `.codex` path?
 
 Q1/L4 exercised the real pre-agent path and exposed one remaining overlap before the Python probe began: pinned Codex automatically protected missing workspace `.codex`, while the custom profile denied the same missing path. Bubblewrap attempted incompatible directory and file masks and stopped with `Is a directory`. Q1/L5 tests the smallest correction once. It is troubleshooting, not a benchmark, reliability claim, or model comparison.
