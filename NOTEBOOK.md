@@ -16,13 +16,19 @@ A qualified environment is reusable capital and capability: build it as a versio
 
 ### Inference, recursion, and memory—oh my!
 
-A memory hierarchy as a qualified environment—and the modular parts that can be derived from it—feels like a compelling direction.
+A memory hierarchy as a qualified environment—and the modular parts that can be derived from it—feels like a compelling direction in response to Q1 learning and what I'm seeing on X.
 Some initial thoughts as I research inference engines, RLMs, and state machines further:
 
 - Context window as cache
 - Durable state via OS-level artifacts
 - Code as the gate to the cache
 - Model as semantic coprocessor to deterministic computation
+
+A provisional language boundary for that might be:
+
+- Python discovers operators and orchestrates bounded model calls.
+- Rust owns control, isolation, accounting, and evidence.
+- Lean proves machine bounds, replay, and settlement — not external truth.
 
 Some recent relevant materials that have stuck with me:
 
