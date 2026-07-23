@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Envelope — semantic computer runtime sketch</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f0ea;
+      --surface: #fbfaf6;
+      --surface-2: #ffffff;
+      --ink: #17201c;
+      --muted: #68716c;
+      --line: #d5d9d3;
+      --line-strong: #aeb7b0;
+      --cpu: #1e664e;
+      --cpu-soft: #e0ece5;
+      --gpu: #7057a4;
+      --gpu-soft: #ebe6f4;
+      --memory: #2d668f;
+      --memory-soft: #e1ebf2;
+      --io: #a95630;
+      --io-soft: #f4e4db;
+      --proof: #786326;
+      --proof-soft: #f0ead7;
+      --shadow: 0 16px 44px rgba(28, 39, 33, 0.075);
+      --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #0c1310;
+        --surface: #131c18;
+        --surface-2: #19231f;
+        --ink: #edf3ef;
+        --muted: #a8b4ad;
+        --line: #2e3b34;
+        --line-strong: #536159;
+        --cpu: #79c7a4;
+        --cpu-soft: #17372b;
+        --gpu: #baa4e2;
+        --gpu-soft: #302744;
+        --memory: #8abbe0;
+        --memory-soft: #1c3446;
+        --io: #e69a72;
+        --io-soft: #43281d;
+        --proof: #dbc078;
+        --proof-soft: #3d351d;
+        --shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--memory) 8%, transparent), transparent 34rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select {
+      color: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 30px 0 24px;
+    }
+
+    .eyebrow,
+    .label,
+    .component-type,
+    .stat-label,
+    .step-kind {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin-bottom: 7px;
+      color: var(--cpu);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin-bottom: 10px;
+      font-size: clamp(2rem, 4.3vw, 3.8rem);
+      font-weight: 650;
+      letter-spacing: -0.047em;
+      line-height: 1.01;
+    }
+
+    h2 {
+      margin-bottom: 5px;
+      font-size: 0.98rem;
+      font-weight: 780;
+    }
+
+    h3 {
+      margin-bottom: 4px;
+      font-size: 0.86rem;
+      font-weight: 780;
+    }
+
+    .lede {
+      max-width: 830px;
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(230px, 1.15fr) minmax(300px, 1.55fr) minmax(200px, 1fr);
+      gap: 14px;
+      align-items: end;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      box-shadow: var(--shadow);
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+
+    select {
+      width: 100%;
+      min-height: 41px;
+      padding: 8px 34px 8px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--surface-2);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--bg);
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented label {
+      padding: 8px 9px;
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .segmented input:checked + label {
+      background: var(--surface-2);
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(22, 34, 28, 0.08);
+    }
+
+    .range-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cpu);
+    }
+
+    .range-value {
+      min-width: 94px;
+      color: var(--cpu);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .isa {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin: 17px 0;
+    }
+
+    .isa-item {
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface);
+    }
+
+    .isa-item.exact-isa {
+      border-color: color-mix(in srgb, var(--cpu) 30%, var(--line));
+      background: var(--cpu-soft);
+    }
+
+    .isa-item.semantic-isa {
+      border-color: color-mix(in srgb, var(--gpu) 30%, var(--line));
+      background: var(--gpu-soft);
+    }
+
+    .isa-item.effect-isa {
+      border-color: color-mix(in srgb, var(--io) 30%, var(--line));
+      background: var(--io-soft);
+    }
+
+    .isa-item code {
+      display: block;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.69rem;
+    }
+
+    .isa-result {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.66rem;
+    }
+
+    .system {
+      display: grid;
+      grid-template-columns: minmax(200px, 0.72fr) minmax(310px, 1.2fr) minmax(340px, 1.45fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .zone {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .zone-head {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 11px;
+    }
+
+    .zone-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.69rem;
+      text-align: right;
+    }
+
+    .stack {
+      display: grid;
+      gap: 9px;
+    }
+
+    .component {
+      width: 100%;
+      min-height: 84px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-2);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 130ms ease, border-color 130ms ease, box-shadow 130ms ease;
+    }
+
+    .component:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+    }
+
+    .component.active {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 11%, transparent);
+    }
+
+    .component.memory-component {
+      background: var(--memory-soft);
+    }
+
+    .component.cpu-component {
+      background: var(--cpu-soft);
+    }
+
+    .component.gpu-component {
+      background: var(--gpu-soft);
+    }
+
+    .component.io-component {
+      background: var(--io-soft);
+    }
+
+    .component.proof-component {
+      background: var(--proof-soft);
+    }
+
+    .component-type {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.57rem;
+      font-weight: 850;
+    }
+
+    .component-name {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .component-copy {
+      display: block;
+      color: var(--muted);
+      font-size: 0.69rem;
+      line-height: 1.35;
+    }
+
+    .pressure {
+      display: block;
+      height: 5px;
+      margin-top: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 82%, transparent);
+    }
+
+    .pressure > span {
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: inherit;
+      background: currentColor;
+      transition: width 180ms ease;
+    }
+
+    .memory-component .pressure {
+      color: var(--memory);
+    }
+
+    .cpu-component .pressure {
+      color: var(--cpu);
+    }
+
+    .gpu-component .pressure {
+      color: var(--gpu);
+    }
+
+    .cpu-grid,
+    .gpu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .cpu-grid .wide,
+    .gpu-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .core {
+      border-color: color-mix(in srgb, var(--cpu) 42%, var(--line));
+    }
+
+    .accelerator {
+      border-color: color-mix(in srgb, var(--gpu) 36%, var(--line));
+    }
+
+    .system[data-mode="agent"] .core {
+      border-color: var(--line);
+      opacity: 0.78;
+    }
+
+    .system[data-mode="agent"] .accelerator {
+      border-color: var(--gpu);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--gpu) 10%, transparent), var(--shadow);
+    }
+
+    .inspector {
+      display: grid;
+      grid-template-columns: minmax(170px, 0.75fr) minmax(0, 2fr) minmax(180px, 0.85fr);
+      gap: 12px;
+      margin: 15px 0 17px;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .inspect-block {
+      min-width: 0;
+    }
+
+    .inspect-block strong {
+      display: block;
+      font-size: 0.81rem;
+    }
+
+    .inspect-block p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .task {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .task-head {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .task-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+
+    .stat {
+      min-width: 102px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface-2);
+      text-align: right;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.56rem;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 2px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .path {
+      display: flex;
+      gap: 20px;
+      align-items: stretch;
+      overflow-x: auto;
+      padding: 3px 2px 10px;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .step-wrap {
+      position: relative;
+      flex: 0 0 124px;
+    }
+
+    .step-wrap:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 34px;
+      right: -16px;
+      color: var(--line-strong);
+      font-weight: 900;
+    }
+
+    .step {
+      width: 100%;
+      min-height: 83px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .step.active {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 10%, transparent);
+    }
+
+    .step.done {
+      opacity: 0.58;
+    }
+
+    .step.exact,
+    .step.control,
+    .step.commit {
+      background: var(--cpu-soft);
+    }
+
+    .step.cache {
+      background: var(--memory-soft);
+    }
+
+    .step.semantic {
+      background: var(--gpu-soft);
+    }
+
+    .step.effect,
+    .step.gate {
+      background: var(--io-soft);
+    }
+
+    .step-kind {
+      display: block;
+      margin-bottom: 9px;
+      color: var(--muted);
+      font-size: 0.55rem;
+      font-weight: 850;
+    }
+
+    .step-name {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .step-repeat {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.65rem;
+    }
+
+    .task-footer {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 11px;
+      border-top: 1px solid var(--line);
+    }
+
+    .actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    .btn {
+      min-height: 37px;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: var(--surface-2);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 780;
+    }
+
+    .btn.primary {
+      border-color: var(--cpu);
+      background: var(--cpu);
+      color: #fff;
+    }
+
+    .status {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.72rem;
+      text-align: right;
+    }
+
+    .learning {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 15px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .learning strong {
+      color: var(--ink);
+      font-weight: 760;
+    }
+
+    .learning .arrow {
+      color: var(--line-strong);
+      font-weight: 900;
+    }
+
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 2px 0;
+      color: var(--muted);
+      font-size: 0.69rem;
+    }
+
+    footer a {
+      color: inherit;
+      text-underline-offset: 3px;
+    }
+
+    @media (max-width: 980px) {
+      .system {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .storage {
+        grid-column: 1 / -1;
+      }
+
+      .storage .stack {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .system {
+        grid-template-columns: 1fr;
+      }
+
+      .storage,
+      .core,
+      .accelerator {
+        grid-column: auto;
+      }
+
+      .inspector {
+        grid-template-columns: 1fr;
+      }
+
+      .task-head,
+      .task-footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .stats {
+        justify-content: flex-start;
+      }
+
+      .status {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .shell {
+        width: min(100% - 18px, 1180px);
+        padding-top: 20px;
+      }
+
+      .storage .stack,
+      .cpu-grid,
+      .gpu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cpu-grid .wide,
+      .gpu-grid .wide {
+        grid-column: auto;
+      }
+
+      .isa {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">Envelope · runtime sketch · unpromoted</div>
+      <h1>The context window is a semantic cache, not the computer’s workspace.</h1>
+      <p class="lede">
+        The CPU runtime owns state, exact computation, memory, I/O, and acceptance.
+        It issues bounded semantic instructions to an inference engine. The engine
+        runs isolated programmatic sub-agents with temporary token views in GPU KV
+        state. Tools remain I/O devices behind capability gates. Both return
+        observations or receipts for the runtime to validate and store.
+      </p>
+    </header>
+
+    <section class="controls" aria-label="System controls">
+      <label class="field">
+        <span class="label">Use case</span>
+        <select id="preset">
+          <option value="artifact">Research → interactive artifact</option>
+          <option value="synthesis">Long-context synthesis</option>
+          <option value="repository">Repository change</option>
+        </select>
+      </label>
+
+      <div class="field">
+        <span class="label">Architecture</span>
+        <div class="segmented">
+          <input type="radio" id="inside" name="mode" value="inside" checked>
+          <label for="inside">LLM inside computer</label>
+          <input type="radio" id="as-computer" name="mode" value="agent">
+          <label for="as-computer">LLM as computer</label>
+        </div>
+      </div>
+
+      <label class="field">
+        <span class="label">Task scale</span>
+        <span class="range-row">
+          <input id="scale" type="range" min="0" max="3" step="1" value="1">
+          <output id="scale-value" class="range-value">24 sections</output>
+        </span>
+      </label>
+    </section>
+
+    <section class="isa" aria-label="Computer instruction boundaries">
+      <div class="isa-item exact-isa">
+        <span class="label">CPU instruction</span>
+        <code>COMPUTE(op, input_handles)</code>
+        <span class="isa-result">→ ArtifactRef</span>
+      </div>
+      <div class="isa-item semantic-isa">
+        <span class="label">Semantic / sub-agent instruction</span>
+        <code>MAP_OBSERVE(op, view_handles, schema, reservation)</code>
+        <span class="isa-result">→ ordered ObservationRef[]</span>
+      </div>
+      <div class="isa-item effect-isa">
+        <span class="label">Tool / I/O instruction</span>
+        <code>READ | EFFECT(capability, args, preconditions)</code>
+        <span class="isa-result">→ ObservationRef | ReceiptRef</span>
+      </div>
+    </section>
+
+    <section id="system" class="system" data-mode="inside" aria-label="Semantic computer system">
+      <section class="zone storage">
+        <div class="zone-head">
+          <h2>Persistent memory</h2>
+          <p>source of truth</p>
+        </div>
+        <div class="stack">
+          <button id="artifacts" class="component memory-component" type="button">
+            <span class="component-type">M3 · storage</span>
+            <span class="component-name">Artifact store</span>
+            <span class="component-copy">Immutable inputs, views, observations, and outputs addressed by handle.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="journal" class="component memory-component" type="button">
+            <span class="component-type">M4 · authority</span>
+            <span class="component-name">Journal + catalog</span>
+            <span class="component-copy">Admitted events, configuration, reservations, bindings, and dispositions.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="tools" class="component io-component" type="button">
+            <span class="component-type">Tool runtime · I/O devices</span>
+            <span class="component-name">Sensors + actuators</span>
+            <span class="component-copy">Read tools return observations. Mutating tools consume admitted intents and return receipts.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="zone core">
+        <div class="zone-head">
+          <h2 id="core-title">Host computer</h2>
+          <p id="core-subtitle">control is deterministic</p>
+        </div>
+        <div class="cpu-grid">
+          <button id="cpu" class="component cpu-component wide" type="button">
+            <span class="component-type">CPU · runtime kernel</span>
+            <span class="component-name" id="cpu-name">Controller + exact compute</span>
+            <span class="component-copy" id="cpu-copy">Compile task shape, schedule, reserve, parse, join, validate, reconcile, and stop.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="ram" class="component memory-component" type="button">
+            <span class="component-type">RAM · workspace</span>
+            <span class="component-name" id="ram-name">Indexes + working views</span>
+            <span class="component-copy" id="ram-copy">Addressable data, handle tables, derived views, and reconstructible REPL bindings.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="queue" class="component cpu-component" type="button">
+            <span class="component-type">Semantic device queue</span>
+            <span class="component-name" id="queue-name">Semantic instructions</span>
+            <span class="component-copy" id="queue-copy">Typed, bounded calls with stable IDs, schemas, deadlines, and reservations.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="toolqueue" class="component io-component" type="button">
+            <span class="component-type">I/O queue + capability gate</span>
+            <span class="component-name">Programmatic tool calls</span>
+            <span class="component-copy">Separate READ from EFFECT; validate authority and journal intent before dispatch.</span>
+          </button>
+          <button id="proof" class="component proof-component wide" type="button">
+            <span class="component-type">Optional proof kernel</span>
+            <span class="component-name">Stable invariants only</span>
+            <span class="component-copy">Lean may check termination, bounds, replay, or acceptance implications—not external semantic truth.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="zone accelerator">
+        <div class="zone-head">
+          <h2 id="accelerator-title">Semantic accelerator</h2>
+          <p>logical context → physical KV state</p>
+        </div>
+        <div class="gpu-grid">
+          <button id="inference" class="component gpu-component wide" type="button">
+            <span class="component-type">Inference engine</span>
+            <span class="component-name" id="inference-name">Batch + tokenize + decode</span>
+            <span class="component-copy" id="inference-copy">Schedule semantic instructions, materialize token views, allocate KV state, run decoding, and return bytes.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="subagents" class="component gpu-component wide" type="button">
+            <span class="component-type">Semantic processes</span>
+            <span class="component-name">Programmatic sub-agent pool</span>
+            <span class="component-copy">Each job receives explicit handles, one bounded context, an output schema, and a child budget—never ambient workspace or tool authority.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="weights" class="component gpu-component" type="button">
+            <span class="component-type">GPU / accelerator memory</span>
+            <span class="component-name">Model weights</span>
+            <span class="component-copy">Resident read-only parameters: the reusable semantic program.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="kv" class="component gpu-component" type="button">
+            <span class="component-type">Context cache</span>
+            <span class="component-name" id="kv-name">Tokens + KV cache</span>
+            <span class="component-copy" id="kv-copy">A disposable projection for one semantic operation—not durable workspace.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+          <button id="gpu" class="component gpu-component wide" type="button">
+            <span class="component-type">GPU execution</span>
+            <span class="component-name">Tensor kernels + activation scratch</span>
+            <span class="component-copy">Execute the model over the loaded cache; parallelize throughput, not authority.</span>
+            <span class="pressure"><span></span></span>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <section class="inspector" aria-live="polite">
+      <div class="inspect-block">
+        <span class="label">Selected component</span>
+        <strong id="inspect-name">CPU / runtime kernel</strong>
+      </div>
+      <div class="inspect-block">
+        <span class="label">Owns</span>
+        <p id="inspect-owns">State transitions, exact computation, scheduling, budgets, I/O admission, and settlement.</p>
+      </div>
+      <div class="inspect-block">
+        <span class="label">Does not own</span>
+        <p id="inspect-not">Semantic truth or provider behavior.</p>
+      </div>
+    </section>
+
+    <section class="task" aria-label="Task execution shape">
+      <div class="task-head">
+        <div>
+          <h2 id="task-title">Research → interactive artifact</h2>
+          <p id="task-note">Scale increases cache loads and batched semantic instructions; the cache itself stays bounded.</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Input</span>
+            <span id="input-stat" class="stat-value">24 sections</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Semantic instructions</span>
+            <span id="semantic-stat" class="stat-value">5 calls</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Cache loads</span>
+            <span id="cache-stat" class="stat-value">5 bounded</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="path" class="path"></div>
+
+      <div class="task-footer">
+        <div class="actions">
+          <button id="next" class="btn primary" type="button">Next transition</button>
+          <button id="reset" class="btn" type="button">Reset</button>
+        </div>
+        <div id="status" class="status">ready · task state lives outside context</div>
+      </div>
+    </section>
+
+    <div class="learning" aria-label="Use-case refinement">
+      <strong>usable task</strong><span class="arrow">→</span>
+      <span>execution trace</span><span class="arrow">→</span>
+      <span id="pattern">repeated bounded semantic map</span><span class="arrow">→</span>
+      <span>candidate runtime primitive</span><span class="arrow">→</span>
+      <strong>human test / promotion / rejection</strong>
+    </div>
+
+    <footer>
+      <span>Conceptual boundary, not a literal hardware cache specification.</span>
+      <span>
+        <a href="python-repl-semantic-coprocessor.md">Research note</a>
+        · <a href="https://arxiv.org/abs/2512.24601">RLM paper</a>
+        · <a href="https://alexzhang13.github.io/blog/2026/harness/">Harness essay</a>
+      </span>
+    </footer>
+  </main>
+
+  <script>
+    const components = {
+      artifacts: {
+        name: "Artifact store",
+        owns: "Immutable payloads and sealed observations addressed by content or run identity.",
+        not: "Event order, acceptance, or mutable live interpreter state."
+      },
+      journal: {
+        name: "Journal + catalog",
+        owns: "The authoritative history: admitted events, reservations, bindings, configuration, and dispositions.",
+        not: "Large payloads or claims that an observation is semantically true."
+      },
+      tools: {
+        name: "Tool runtime / I/O devices",
+        owns: "External reads as sensor observations and mutations as actuator receipts.",
+        not: "Task control. A model may request an intent; it cannot grant authority."
+      },
+      cpu: {
+        name: "CPU / runtime kernel",
+        owns: "State transitions, exact computation, scheduling, budgets, I/O admission, and settlement.",
+        not: "Semantic truth or provider behavior."
+      },
+      ram: {
+        name: "RAM / workspace",
+        owns: "Indexes, handle tables, derived views, accumulators, and reconstructible REPL bindings.",
+        not: "Durable evidence. A process crash may discard it."
+      },
+      queue: {
+        name: "Semantic instruction queue",
+        owns: "Typed OBSERVE or MAP_OBSERVE requests, stable IDs, schemas, deadlines, batches, and reservations.",
+        not: "The meaning of returned observations."
+      },
+      toolqueue: {
+        name: "I/O queue + capability gate",
+        owns: "Programmatic READ and EFFECT requests, authority checks, idempotency keys, dispatch, and reconciliation.",
+        not: "Semantic planning or permission inherited from a model or sub-agent."
+      },
+      proof: {
+        name: "Proof kernel",
+        owns: "Selected stable propositions about controller transitions, bounds, replay, or acceptance implication.",
+        not: "Provider execution, external facts, model quality, or the Rust implementation’s conformance."
+      },
+      inference: {
+        name: "Inference engine",
+        owns: "Model loading, sub-agent scheduling, tokenization, batching, KV allocation, GPU dispatch, decoding, and output bytes.",
+        not: "The task contract, durable memory, tool authority, or final acceptance."
+      },
+      subagents: {
+        name: "Programmatic sub-agent pool",
+        owns: "Isolated semantic jobs over explicit views, schemas, model configuration, and child budgets.",
+        not: "The parent workspace, ambient credentials, unbounded recursion, external effects, or acceptance."
+      },
+      weights: {
+        name: "Model weights",
+        owns: "A reusable learned mapping that performs semantic computation during inference.",
+        not: "Run state, memory policy, task authority, or evidence custody."
+      },
+      kv: {
+        name: "Context window / KV cache",
+        owns: "The bounded token projection and its accelerator-side runtime state for one semantic invocation.",
+        not: "The task workspace, source of truth, durable memory, or complete run history."
+      },
+      gpu: {
+        name: "GPU execution",
+        owns: "Parallel tensor execution and temporary activations for model inference.",
+        not: "Scheduling policy above the inference engine, task state, or external effects."
+      }
+    };
+
+    const presets = {
+      artifact: {
+        title: "Research → interactive artifact",
+        units: ["8 sections", "24 sections", "64 sections", "160 sections"],
+        calls: [3, 5, 10, 21],
+        note: "Scale increases cache loads and batched semantic instructions; the cache itself stays bounded.",
+        pattern: "bounded semantic map + review receipt",
+        final: "Write + settle",
+        stages: [
+          ["control", "Admit contract", ["cpu", "journal"], "Contract and budgets become durable state."],
+          ["exact", "Index sources", ["toolqueue", "tools", "artifacts", "ram", "cpu"], "Read tools acquire sources; CPU builds exact handles and working views."],
+          ["cache", "Spawn sub-agents", ["ram", "queue", "inference", "subagents", "kv"], "Each semantic job receives one bounded view and isolated KV state.", "calls"],
+          ["semantic", "Run OBSERVE", ["subagents", "inference", "weights", "kv", "gpu"], "Programmatic sub-agents return schema-bound semantic observations.", "calls"],
+          ["commit", "Seal results", ["inference", "cpu", "artifacts", "journal"], "Runtime validates schema and commits observation handles."],
+          ["exact", "Join + render", ["cpu", "ram", "artifacts"], "CPU performs canonical reduction and exact artifact construction."],
+          ["effect", "Write + settle", ["cpu", "toolqueue", "tools", "artifacts", "journal"], "An admitted tool effect produces a receipt; evidence determines disposition."]
+        ]
+      },
+      synthesis: {
+        title: "Long-context synthesis",
+        units: ["24 documents", "96 documents", "384 documents", "1,536 documents"],
+        calls: [3, 8, 25, 97],
+        note: "More documents produce more cache loads; they do not become one ever-growing model workspace.",
+        pattern: "semantic filter + exact canonical reduce",
+        final: "Verify + settle",
+        stages: [
+          ["control", "Admit question", ["cpu", "journal"], "Question, evidence rule, sources, and budget become durable state."],
+          ["exact", "Parse + index", ["artifacts", "ram", "cpu"], "CPU prepares exact searchable views."],
+          ["cache", "Spawn sub-agents", ["ram", "queue", "inference", "subagents", "kv"], "Each semantic worker receives one bounded token projection.", "calls"],
+          ["semantic", "Filter evidence", ["subagents", "inference", "weights", "kv", "gpu"], "Programmatic sub-agents classify relevance and return observations.", "calls"],
+          ["commit", "Seal evidence", ["cpu", "artifacts", "journal"], "Validated observations become immutable handles."],
+          ["exact", "Reduce + cite", ["cpu", "ram", "artifacts"], "CPU orders, deduplicates, joins, and resolves citations."],
+          ["gate", "Verify + settle", ["cpu", "artifacts", "journal"], "Acceptance uses admitted evidence, not model confidence."]
+        ]
+      },
+      repository: {
+        title: "Repository change",
+        units: ["4 files", "16 files", "64 files", "256 files"],
+        calls: [2, 3, 6, 18],
+        note: "The model proposes meaning; the CPU runtime owns file authority, tests, receipts, and acceptance.",
+        pattern: "semantic plan + admitted effect + exact verification",
+        final: "Test + settle",
+        stages: [
+          ["control", "Admit change", ["cpu", "journal"], "Scope, allowed files, tests, and authority become durable state."],
+          ["exact", "Scan repository", ["cpu", "toolqueue", "tools", "artifacts", "ram"], "Read tools expose files and status; CPU builds exact symbol and dependency views."],
+          ["cache", "Spawn sub-agents", ["ram", "queue", "inference", "subagents", "kv"], "Only bounded relevant code enters each isolated semantic job.", "calls"],
+          ["semantic", "Diagnose + plan", ["subagents", "inference", "weights", "kv", "gpu"], "Programmatic sub-agents return typed diagnosis or plan observations.", "calls"],
+          ["commit", "Validate plan", ["cpu", "artifacts", "journal"], "Runtime checks scope, schema, and authority before any mutation."],
+          ["effect", "Apply patch", ["cpu", "toolqueue", "tools", "artifacts", "journal"], "A typed effect intent mutates admitted files and returns a receipt."],
+          ["gate", "Test + settle", ["cpu", "ram", "artifacts", "journal"], "Exact tests and evidence determine acceptance."]
+        ]
+      }
+    };
+
+    const state = {
+      preset: "artifact",
+      mode: "inside",
+      scale: 1,
+      current: -1,
+      selectedComponent: "cpu"
+    };
+
+    const el = {
+      preset: document.getElementById("preset"),
+      scale: document.getElementById("scale"),
+      scaleValue: document.getElementById("scale-value"),
+      system: document.getElementById("system"),
+      coreTitle: document.getElementById("core-title"),
+      coreSubtitle: document.getElementById("core-subtitle"),
+      cpuName: document.getElementById("cpu-name"),
+      cpuCopy: document.getElementById("cpu-copy"),
+      ramName: document.getElementById("ram-name"),
+      ramCopy: document.getElementById("ram-copy"),
+      queueName: document.getElementById("queue-name"),
+      queueCopy: document.getElementById("queue-copy"),
+      acceleratorTitle: document.getElementById("accelerator-title"),
+      inferenceName: document.getElementById("inference-name"),
+      inferenceCopy: document.getElementById("inference-copy"),
+      kvName: document.getElementById("kv-name"),
+      kvCopy: document.getElementById("kv-copy"),
+      inspectName: document.getElementById("inspect-name"),
+      inspectOwns: document.getElementById("inspect-owns"),
+      inspectNot: document.getElementById("inspect-not"),
+      taskTitle: document.getElementById("task-title"),
+      taskNote: document.getElementById("task-note"),
+      inputStat: document.getElementById("input-stat"),
+      semanticStat: document.getElementById("semantic-stat"),
+      cacheStat: document.getElementById("cache-stat"),
+      path: document.getElementById("path"),
+      next: document.getElementById("next"),
+      reset: document.getElementById("reset"),
+      status: document.getElementById("status"),
+      pattern: document.getElementById("pattern")
+    };
+
+    function preset() {
+      return presets[state.preset];
+    }
+
+    function calls() {
+      return preset().calls[state.scale];
+    }
+
+    function selectComponent(id) {
+      state.selectedComponent = id;
+      const component = components[id];
+      el.inspectName.textContent = component.name;
+      el.inspectOwns.textContent = component.owns;
+      el.inspectNot.textContent = component.not;
+      document.querySelectorAll(".component").forEach((node) => node.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    function pressureFor(id) {
+      const scale = state.scale;
+      const progress = Math.max(0, state.current + 1);
+      if (id === "weights") return 82;
+      if (id === "artifacts") return 35 + scale * 15;
+      if (id === "journal") return 20 + progress * 7;
+      if (id === "ram") return state.mode === "inside" ? 30 + scale * 16 : 48 + scale * 15;
+      if (id === "queue") return state.mode === "inside" ? 28 + scale * 12 : 12;
+      if (id === "toolqueue") return 22 + progress * 4;
+      if (id === "cpu") return state.mode === "inside" ? 42 + scale * 7 : 20;
+      if (id === "inference" || id === "gpu") return 38 + scale * 13;
+      if (id === "subagents") return 28 + scale * 18;
+      if (id === "kv") return state.mode === "inside" ? 56 : Math.min(100, 48 + scale * 18 + progress * 2);
+      return 36;
+    }
+
+    function renderArchitecture() {
+      el.system.dataset.mode = state.mode;
+      const inside = state.mode === "inside";
+
+      el.coreTitle.textContent = inside ? "Host computer" : "Thin host loop";
+      el.coreSubtitle.textContent = inside ? "control is deterministic" : "model owns control";
+      el.cpuName.textContent = inside ? "Controller + exact compute" : "Tool-call dispatcher";
+      el.cpuCopy.textContent = inside
+        ? "Compile task shape, schedule, reserve, parse, join, validate, reconcile, and stop."
+        : "Mostly forwards transcript and model-selected actions; little durable control remains here.";
+      el.ramName.textContent = inside ? "Indexes + working views" : "Transcript + live heap";
+      el.ramCopy.textContent = inside
+        ? "Addressable data, handle tables, derived views, and reconstructible REPL bindings."
+        : "Task state is entangled with append-only context and hidden mutable interpreter state.";
+      el.queueName.textContent = inside ? "Semantic instructions" : "Free-form turns";
+      el.queueCopy.textContent = inside
+        ? "Typed, bounded calls with stable IDs, schemas, deadlines, and reservations."
+        : "The model decides decomposition, paging, fan-out, tools, and stopping as it goes.";
+      el.acceleratorTitle.textContent = inside ? "Semantic accelerator" : "Model-centered computer";
+      el.inferenceName.textContent = inside ? "Batch + tokenize + decode" : "Reason + plan + control";
+      el.inferenceCopy.textContent = inside
+        ? "Schedule semantic instructions, materialize token views, allocate KV state, run decoding, and return bytes."
+        : "Inference trajectory also carries task state, memory policy, branches, and tool decisions.";
+      el.kvName.textContent = inside ? "Tokens + KV cache" : "Context treated as workspace";
+      el.kvCopy.textContent = inside
+        ? "A disposable projection for one semantic operation—not durable workspace."
+        : "Task-specific history accumulates until compaction, truncation, or a fresh trajectory.";
+
+      document.querySelectorAll(".component .pressure > span").forEach((bar) => {
+        const component = bar.closest(".component");
+        bar.style.width = `${Math.min(100, pressureFor(component.id))}%`;
+      });
+    }
+
+    function renderTask() {
+      const task = preset();
+      const unit = task.units[state.scale];
+      el.scaleValue.textContent = unit;
+      el.taskTitle.textContent = task.title;
+      el.taskNote.textContent = state.mode === "inside"
+        ? task.note
+        : "In this comparison, scale also grows the model trajectory because context is carrying workspace and control.";
+      el.inputStat.textContent = unit;
+      el.semanticStat.textContent = `${calls()} calls`;
+      el.cacheStat.textContent = state.mode === "inside" ? `${calls()} bounded` : "growing";
+      el.pattern.textContent = task.pattern;
+      el.path.innerHTML = "";
+
+      task.stages.forEach((stage, index) => {
+        const [kind, name, systems, detail, repeat] = stage;
+        const wrap = document.createElement("div");
+        wrap.className = "step-wrap";
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `step ${kind}`;
+        if (index < state.current) button.classList.add("done");
+        if (index === state.current) button.classList.add("active");
+        button.setAttribute("aria-label", `${index + 1}. ${name}: ${detail}`);
+
+        const kindLabel = document.createElement("span");
+        kindLabel.className = "step-kind";
+        kindLabel.textContent = kind;
+        const nameLabel = document.createElement("span");
+        nameLabel.className = "step-name";
+        nameLabel.textContent = name;
+        button.append(kindLabel, nameLabel);
+
+        if (repeat === "calls") {
+          const count = document.createElement("span");
+          count.className = "step-repeat";
+          count.textContent = `× ${calls()}`;
+          button.append(count);
+        }
+
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".component").forEach((node) => node.classList.remove("active"));
+          systems.forEach((id) => document.getElementById(id).classList.add("active"));
+          el.inspectName.textContent = name;
+          el.inspectOwns.textContent = detail;
+          el.inspectNot.textContent = state.mode === "inside"
+            ? `Data route: ${systems.map((id) => components[id].name).join(" → ")}.`
+            : "In the model-managed comparison, intermediate state also returns to the growing transcript.";
+        });
+
+        wrap.append(button);
+        el.path.append(wrap);
+      });
+
+      const total = task.stages.length;
+      if (state.current < 0) {
+        el.status.textContent = "ready · task state lives outside context";
+        el.next.textContent = "Next transition";
+      } else if (state.current >= total - 1) {
+        el.status.textContent = `settled · ${total} / ${total} transitions`;
+        el.next.textContent = "Run again";
+      } else {
+        el.status.textContent = `running · ${state.current + 1} / ${total} transitions`;
+        el.next.textContent = "Next transition";
+      }
+    }
+
+    function renderActiveStep() {
+      document.querySelectorAll(".component").forEach((node) => node.classList.remove("active"));
+      if (state.current < 0) {
+        selectComponent("cpu");
+        return;
+      }
+
+      const stage = preset().stages[state.current];
+      const [kind, name, systems, detail] = stage;
+      systems.forEach((id) => document.getElementById(id).classList.add("active"));
+      el.inspectName.textContent = name;
+      el.inspectOwns.textContent = detail;
+      el.inspectNot.textContent = state.mode === "inside"
+        ? `Active route: ${systems.map((id) => components[id].name).join(" → ")}.`
+        : "Task state and observations also append to the model trajectory in this comparison.";
+      void kind;
+    }
+
+    function renderAll() {
+      renderArchitecture();
+      renderTask();
+      renderActiveStep();
+    }
+
+    document.querySelectorAll(".component").forEach((button) => {
+      button.addEventListener("click", () => selectComponent(button.id));
+    });
+
+    el.preset.addEventListener("change", (event) => {
+      state.preset = event.target.value;
+      state.current = -1;
+      renderAll();
+    });
+
+    document.querySelectorAll('input[name="mode"]').forEach((input) => {
+      input.addEventListener("change", (event) => {
+        state.mode = event.target.value;
+        state.current = -1;
+        renderAll();
+      });
+    });
+
+    el.scale.addEventListener("input", (event) => {
+      state.scale = Number(event.target.value);
+      state.current = -1;
+      renderAll();
+    });
+
+    el.next.addEventListener("click", () => {
+      const length = preset().stages.length;
+      state.current = state.current >= length - 1 ? -1 : state.current + 1;
+      renderAll();
+      const active = el.path.querySelector(".step.active");
+      if (active) active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    });
+
+    el.reset.addEventListener("click", () => {
+      state.current = -1;
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
