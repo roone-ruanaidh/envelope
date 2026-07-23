@@ -10,7 +10,19 @@ The durable pattern across Envelope's intent, Recursive Language Models, and the
 
 > Do not let task state, authority, accounting, and acceptance collapse into the model's opaque trajectory.
 
-The system's governed and priced unit is therefore not a token, model turn, tool call, or final output. It is an **admitted state transition toward a versioned acceptance contract**.
+The reusable skeleton is an **acceptance-priced execution kernel**: not a memory library, task catalog, or monolithic agent. It executes:
+
+```text
+task contract + initial state + authority + budget
+  -> accepted terminal state + evidence + total cost
+```
+
+Its governed and priced unit is not a token, model turn, tool call, or final output. It is an **admitted state transition toward a versioned acceptance contract**.
+
+This separates two centers that should not be confused:
+
+- The **architectural center** is the attempt state machine.
+- The **research center** is acceptance-priced performance over task distributions.
 
 ```text
 contracted state
@@ -37,6 +49,16 @@ The executors may change. The transition envelope should not.
 The authoritative task state is the journal plus immutable artifacts. RAM, REPL bindings, summaries, indexes, and model context are derived working views.
 
 The context window is a bounded semantic cache. It contains the instruction and evidence projection needed for one model operation. It is not the task workspace, event history, or source of truth. Larger tasks should normally create more cache loads, not one proportionally larger model trajectory.
+
+```text
+durable task state
+  -> indexed and derived views
+  -> active deterministic working set
+  -> selected context cache
+  -> ephemeral model activations
+```
+
+Higher layers may derive from lower layers, but must not become the only copy of authoritative state. Context selection, compaction, retrieval, and REPL behavior are initially policies behind this boundary, not settled architecture.
 
 ### Authority leaves model output
 
@@ -93,11 +115,34 @@ The reconciler—not the executor—determines whether the result is admissible 
 
 This envelope recurses. A programmatic sub-agent receives a smaller contract, explicit input views, output schema, child budget, deadline, and allowed child operations. It does not inherit the parent's heap, credentials, unbounded recursion, or authority. Nested work remains attributable to the parent reservation and acceptance path.
 
-## Task shape is derived
+The minimum kernel vocabulary is:
+
+- **task:** initial state, authority, acceptance procedure, and budget;
+- **attempt:** state root, remaining budget, event history, and disposition;
+- **state object:** typed content, identity, provenance, version, and durability;
+- **context view:** selected state references, selection reason, token cost, and lifetime;
+- **semantic operation:** named purpose, referenced inputs, output schema, model configuration, and cost;
+- **actuation:** proposed effect, authority check, deterministic execution, and observed result; and
+- **evaluation:** acceptance result, evidence, failure attribution, and complete accounting.
+
+Programmatic sub-agents are bounded semantic operations with their own execution graphs. They do not own global state or authority.
+
+## Task contracts are programs
 
 Envelope should not start with a universal workflow or a desired number of steps.
 
-The task contract supplies obligations. Available structured data supplies exact dependencies. Genuine semantic unknowns become model operations. Required external changes become effect intents. Evidence requirements create verification and reconciliation nodes.
+A task contract is closer to a program submitted for execution than a chat prompt. It states the work, initial conditions, authority, budget, and acceptance semantics. The kernel progressively compiles it:
+
+```text
+human-readable task and acceptance contract
+  -> typed obligations, capabilities, and budgets
+  -> state-transition graph
+  -> exact, semantic, and effect operations
+  -> runtime instructions and context-cache loads
+  -> evaluated terminal state
+```
+
+This compilation need not be wholly static. Available structured data supplies exact dependencies. Genuine semantic unknowns become model operations. Required external changes become effect intents. Evidence requirements create verification and reconciliation nodes. Bounded dynamic elaboration is legal when it produces typed, reservable, authorized work.
 
 This produces:
 
@@ -108,6 +153,8 @@ This produces:
 - terminal acceptance, rejection, or inconclusive states.
 
 Step count and cost are outputs of this shape and its realized failures. Adaptation is allowed only when a candidate expansion is typed, reservable, authorized, and consumes finite potential.
+
+The contract is also a diagnostic program. Different task shapes expose missing instructions, poor memory behavior, unsafe authority boundaries, and expensive transitions. As languages and compilers expose properties of a conventional machine, task contracts expose properties of this computation system. Each task may require a new program or adapter; it should not define a new computer.
 
 ## Price to acceptance
 
@@ -144,7 +191,19 @@ The model and external world remain stochastic. The attainable guarantees are na
 
 Re-executing model or tool calls is a new trajectory. It is not replay.
 
-Rust may own the durable operational membrane. Lean may prove selected invariants of a stable abstract machine. Python may remain the research workspace. Those assignments are replaceable; none is the invariant itself.
+## Implementation-language boundaries
+
+The system should be developed and qualified in Python before its implementation boundaries harden.
+
+- **Python is the experimental control plane:** harness behavior, state-machine development, memory policies, context construction, semantic-operation orchestration, integration, instrumentation, and analysis.
+- **Rust is a candidate deterministic data plane:** high-throughput artifact processing, concurrent scheduling, memory-bounded caches, long-lived services, sandbox supervision, hostile-input parsing, and state-integrity boundaries.
+- **Lean is a proof boundary:** legal transitions, capability relationships, budget conservation, monotonic evidence properties, and other invariants that can be faithfully reduced to a formal model.
+
+Rust adoption should follow measured performance or trust requirements. A compiled boundary adds protocol and maintenance cost; proximity to the CPU alone is not evidence that it belongs there.
+
+Lean is not a harness and should not make the whole system pretend to be provable. A theorem establishes only the encoded claim inside its model. Correspondence between that model, the implementation, and the external world remains an explicit assumption or evidence obligation. Lean's value is both enforcing what is proved and making the unproved boundary visible.
+
+These assignments are replaceable. None is the invariant itself.
 
 ## Why this pattern appears durable
 
@@ -159,11 +218,11 @@ It survives changes in:
 
 It also creates one inspectable seam for memory, authority, evidence, failure, and cost. Removing any of those from the envelope pushes consequential state back into prompt prose or hidden runtime behavior.
 
-## What Envelope is becoming
+## The computation system
 
-Envelope is less a better prompt harness than:
+Envelope is researching:
 
-> A transactional operating system and economic runtime for stochastic semantic computation.
+> An acceptance-priced execution kernel for stochastic semantic computation.
 
 Its candidate stable substrate is:
 
@@ -180,18 +239,23 @@ The model is a semantic coprocessor inside that computer. Programmatic sub-agent
 
 ## Use cases refine the substrate
 
-Each use case should solve useful work with the smallest available system while exposing where the substrate is missing, redundant, or wrong:
+Tasks are programs running on the computation system. Task distributions are experimental loads that reveal whether its contracts generalize.
+
+The kernel should therefore be architected around invariant attempt contracts but implemented through a complete vertical slice of useful work:
 
 ```text
-useful task
+task contract
+  -> durable attempt state
+  -> selected context and semantic operation
+  -> authorized effects
+  -> external acceptance
   -> execution trace
-  -> repeated operation or failed assumption
-  -> candidate runtime primitive
-  -> targeted experiment
-  -> human promotion, simplification, or rejection
+  -> cost and failure attribution
 ```
 
-No run promotes its own pattern. A primitive earns promotion only after its semantics, failure behavior, resource claims, evidence, and value across more than one trajectory are clear enough to review.
+The next task should exercise the same contracts. Repeated operations and failed assumptions nominate runtime primitives or memory-policy changes. An integrated trace can reveal bottlenecks and candidate mechanisms; it cannot establish which component caused an outcome. Causal claims require later controlled removal or substitution.
+
+No run promotes its own pattern. A primitive earns promotion only after its semantics, failure behavior, resource claims, evidence, and value across more than one task shape are clear enough to review.
 
 This allows practical tools and the eventual computer to co-evolve without designing a universal agent architecture in advance.
 
@@ -204,7 +268,7 @@ This allows practical tools and the eventual computer to co-evolve without desig
 5. **Reservation:** How can hard global bounds remain honest when providers expose incomplete usage, cancellation, and billing information?
 6. **Conformance:** How will a proved abstract transition kernel remain aligned with the operational implementation?
 
-The operator boundary appears to be the next architectural question. The acceptance and state-sufficiency questions remain the deeper qualification questions.
+The next experiment should qualify the integrated kernel boundary on real, externally scored tasks. Its traces may identify the operator, projection, or implementation boundary worth isolating in a later question. Acceptance and state sufficiency remain the deeper qualification questions.
 
 ## Stop claims
 
@@ -217,6 +281,8 @@ This synthesis does not establish that:
 - a successful candidate is accepted completion;
 - a Rust runtime is crash-safe or least-authority merely because it is Rust;
 - a Lean theorem proves production conformance or external truth;
+- compiling a human task contract makes its intent complete or unambiguous;
+- an observed bottleneck establishes that a component caused the outcome;
 - recurring operators should be promoted before cross-use-case evidence; or
 - any proposed architecture lowers price to acceptance.
 
