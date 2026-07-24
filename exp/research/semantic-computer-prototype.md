@@ -375,3 +375,38 @@ capability grant; context is a temporary projection; memory is durable machine
 state; and completion is an accepted transition. Build the coherent path
 directly and let implementation walls produce the next questions; this is a
 north star for making the computer, not another abstract experiment ladder.
+
+## Addendum: trusted REPL and transition lifecycle
+
+The model context window is a cache. The machine holds durable state; code owns
+which bounded projection enters that cache. The Python/model REPL is therefore
+an ephemeral semantic workspace: it may inspect projections and produce
+artifacts or proposals, but it owns no authoritative state and may die without
+losing the task.
+
+**Lean owns logical authority:** admissibility, transition relations, and proofs
+that accepted steps preserve invariants. **Rust owns operational authority:**
+canonical state and events, capabilities, effects, isolation, receipts, and
+atomic journal commits. Humans and authorized domain sources supply semantic
+attestations; Python and models supply proposals.
+
+```text
+code projects durable state into the model cache
+        ↓
+Python/model proposes
+        ↓
+Lean decides admissibility and required evidence
+        ↓
+Rust verifies current state and capabilities
+        ↓
+Rust executes the effect and records its receipt
+        ↓
+Lean checks the resulting commit transition
+        ↓
+Rust atomically journals the accepted state
+```
+
+Only Rust may cross from admitted proposal to external effect and committed
+state. Lean should provide the executable decision or a checkable artifact;
+duplicating its transition rules in Rust would create an implementation separate
+from the machine that was proved.
