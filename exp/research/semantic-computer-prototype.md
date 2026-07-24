@@ -257,3 +257,63 @@ That precision matters for the enterprise provenance claim.
 - Zhang and Khattab, [“Language model harnesses are compositional generalizers”](https://alexzhang13.github.io/blog/2026/harness/)
 - Local synthesis: [Harness compositional generalization](harness-compositional-generalization.md)
 - Local synthesis: [Recursive language model control](recursive-language-model-control.md)
+
+## Addendum: build interpretation after hierarchy research
+
+This addendum condenses the implications of the inference-tier research for an
+initial semantic-computer build. It narrows what the prototype tests; it does
+not promote the architecture or assume that it should replace model-owned
+harnesses.
+
+The semantic computer is a **research apparatus for code-owned durable control
+with a replaceable, fallible semantic processor**. The kernel owns commitments:
+durable state, budgets, effects, authority, acceptance, and accounting. A model
+may still own rich local search or decomposition inside one bounded semantic
+instruction. Its result is an attributed observation or proposal, not truth.
+
+The context/KV layer is literally a cache of projected external state. Success
+there does not imply that judgments are reusable, routable to a cheaper model,
+learnable by a specialist, or compilable into code. Those are separate
+properties that the machine trace should measure.
+
+Keep three experiments separate:
+
+1. **Substitution:** one processor per run; test whether the computer boundary
+   survives XS, S, then a second model family.
+2. **Routing:** make multiple processors available and learn which is competent
+   for each instruction class.
+3. **Promotion:** separately test response caches, skills, specialist models,
+   and deterministic rules. Repetition alone licenses none of them.
+
+“Same computer” should mean stable task-contract semantics, authority and effect
+boundaries, accepted-transition semantics, evidence format, and kernel—not an
+identical execution trace. The semantic ISA is therefore a hypothesis. Device
+driver size, family-specific exceptions, and required kernel changes are
+evidence about whether it is real. If cross-family substitution changes the
+kernel or task meaning, the current result is a family-specific appliance.
+
+Validation will often be partial. Deterministic code can check schemas, scope,
+authority, state preconditions, tests, invariants, and receipts; it may not
+establish semantic truth. The runtime should support `accept`, `reject`,
+`abstain`, `escalate`, and `request more evidence`. Use explicit journal/replay
+as the initial recovery model; add live restarts only if a workload demonstrates
+sequential ambiguity that explicit steps cannot express cleanly.
+
+The trace is the first reusable capability. In addition to the evidence already
+listed, retain processor and driver versions, instruction-contract version,
+exact context projections, candidate outputs, validation policy and verdict,
+independent outcome evidence, rejected alternatives, and promotion lineage.
+This supports measurement of competence regions, recurrence, resolution
+equivalence, specialist generalization, rule scope, dependency, and total
+acceptance cost.
+
+Build in this order: fake-endpoint conformance, fixed-policy XS, fixed-policy S,
+then one cross-family processor. Hold the logical projection and semantic
+instruction contract fixed before allowing processor-native optimization. Add
+routing or promotion only after those traces show what relation exists.
+
+Prefer a small language-neutral semantic IR. Python is the practical
+model-facing experiment surface; Rust is a candidate durable/capability kernel;
+proof tooling should check only stable encoded invariants. Common Lisp, OCaml,
+and Racket are later control-semantics probes, not alternative implementations
+of the whole computer.
