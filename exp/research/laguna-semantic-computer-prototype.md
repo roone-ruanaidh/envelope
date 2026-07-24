@@ -40,13 +40,19 @@ task contract
 The context window is a cache, not the workspace. Durable state remains
 authoritative; code decides what enters context.
 
-## What the two models expose
+A conventional agent harness makes the model the principal that owns the
+trajectory and calls tools. An RLM commonly lets that model reach into an
+external REPL and invoke more models. Envelope reverses ownership: the task is a
+process; the kernel owns control, memory, effects, and accounting; models are
+replaceable devices receiving bounded semantic instructions.
+
+## Processor substitutions
 
 Run the same computer, task programs, memory policy, and instruction contracts
-against both models first. This asks whether one machine abstraction survives a
-semantic-processor swap. Model-specific optimization should follow only after
-the fixed-policy comparison; otherwise processor capacity and architecture
-adaptation are confounded.
+against Laguna XS and S first. This asks whether one machine abstraction
+survives a within-family semantic-processor swap. Model-specific optimization
+should follow only after the fixed-policy comparison; otherwise processor
+capacity and architecture adaptation are confounded.
 
 The resulting research has two independent axes:
 
@@ -70,6 +76,41 @@ show:
 - whether one memory policy works across both processors;
 - which semantic instructions fail or change shape by processor size;
 - where repeated semantic work can be substituted with deterministic code.
+
+Cross-family substitution is then necessary to distinguish a semantic computer
+from a Laguna-specific appliance. Add processors as controlled contrasts, not a
+model zoo:
+
+| Contrast | Processors | What it tests |
+|---|---|---|
+| Within-family scaling | Laguna XS 33B-A3B → Laguna S 118B-A8B | One machine across processor capacity |
+| Matched sparse geometry across families | Laguna XS 33B-A3B ↔ Qwen 3.6 35B-A3B | Portability across weights, training, tokenizer, and protocol |
+| Sparse versus dense | Qwen 3.6 35B-A3B ↔ Qwen 3.6 27B dense | Effect of active compute and model architecture |
+| Second family architecture | Gemma 4 26B-A4B ↔ Gemma 4 31B dense | Portability beyond one vendor and serving convention |
+| Later large-scale substitution | Inkling-Small, after weight release | A substantially different MoE and reasoning system |
+
+“Size” is not one scalar. Each processor profile must distinguish:
+
+- total parameters, which affect storage, VRAM, loading, and sharding;
+- active parameters, which approximate inference computation per token;
+- dense or MoE architecture, which changes bandwidth, routing, and latency;
+- context capacity, which is the semantic processor's cache ceiling;
+- training and post-training, which shape semantic-instruction competence;
+- reasoning effort, which makes semantic compute variable;
+- engine, quantization, and hardware, which physically implement the processor.
+
+### Semantic device drivers
+
+The invariant boundary should be the task program, semantic instruction
+contracts, durable-state representation, effect boundary, and acceptance
+evaluator. Each model family gets a device driver that compiles those
+instructions into its chat template, tool protocol, reasoning representation,
+and tokenizer.
+
+Adding a processor should require a driver and processor profile, not kernel
+changes. If Gemma or Qwen forces changes through the kernel, the supposed
+semantic ISA encoded Laguna behavior as architecture. Driver complexity,
+family-specific instructions, and abstraction leaks are therefore evidence.
 
 ## Validation ladder
 
@@ -121,6 +162,44 @@ Its purpose is to reveal missing instructions, poor memory behavior, expensive
 transitions, and processor-dependent behavior. It should not become a broad
 leaderboard before the machine exists.
 
+### Benchmark inversion
+
+Most model benchmarks assume:
+
+```text
+task state -> context window -> model -> answer
+```
+
+Envelope instead evaluates:
+
+```text
+task state -> durable machine memory
+kernel -> bounded projection -> semantic processor
+kernel -> admitted state transition or effect
+```
+
+Existing benchmarks may supply task semantics and external evaluators, while
+their data is mounted as authoritative state rather than automatically placed in
+the prompt. This is a deliberate change in task presentation and must be
+reported as a system evaluation, not silently compared with a raw model score.
+
+Where a comparison is useful, run the same task and evaluator in two modes:
+
+1. **Direct/model-native:** the conventional presentation or established agent
+   harness.
+2. **Envelope-native:** external state plus bounded semantic dispatches.
+
+Cross-processor evaluation also needs two modes:
+
+1. **Fixed cache:** each processor receives the same logical projection budget,
+   isolating processor behavior.
+2. **Native machine:** each processor uses its deployable context, reasoning,
+   and serving configuration, comparing useful complete machines.
+
+Because tokenizers differ, define fixed logical projections in stable task units
+such as bytes, records, files, or artifacts; record the resulting tokens as a
+processor-specific resource cost.
+
 ## Evidence to retain
 
 Acceptance remains the external result, but the machine trace is the primary
@@ -147,7 +226,7 @@ report:
 
 - one Linux machine definition;
 - one deterministic runtime and memory hierarchy;
-- processor profiles for Laguna XS and S;
+- device drivers and processor profiles, beginning with Laguna XS and S;
 - a local Lima conformance profile;
 - a reproducible NVIDIA deployment profile;
 - task programs and evaluator adapters;
@@ -171,6 +250,10 @@ That precision matters for the enterprise provenance claim.
 - Poolside, [Laguna S 2.1 model card](https://huggingface.co/poolside/Laguna-S-2.1)
 - Poolside, [OpenMDW 1.1 license](https://huggingface.co/poolside/Laguna-XS-2.1/blob/main/LICENSE.md)
 - Poolside, [published trajectories](https://trajectories.poolside.ai/)
+- Qwen, [Qwen 3.6 35B-A3B](https://qwen.ai/blog?id=qwen3.6-35b-a3b)
+- Qwen, [Qwen 3.6 27B model card](https://huggingface.co/Qwen/Qwen3.6-27B)
+- Google, [Gemma 4 overview](https://ai.google.dev/gemma/docs/core)
+- Thinking Machines Lab, [Inkling and Inkling-Small](https://thinkingmachines.ai/news/introducing-inkling/)
 - Zhang and Khattab, [“Language model harnesses are compositional generalizers”](https://alexzhang13.github.io/blog/2026/harness/)
 - Local synthesis: [Harness compositional generalization](harness-compositional-generalization.md)
 - Local synthesis: [Recursive language model control](recursive-language-model-control.md)
