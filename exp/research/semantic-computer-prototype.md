@@ -1,4 +1,4 @@
-# Laguna semantic computer prototype
+# Semantic computer prototype
 
 - **Research date:** July 23, 2026
 - **Status:** build orientation; unpromoted and not an approved experiment
