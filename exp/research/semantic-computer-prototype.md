@@ -355,3 +355,23 @@ building routing and promotion; keep test splits frozen. These benchmarks can
 test the computer's mechanisms, but not establish real-workload escalation
 locality, long-term promotion economics, or human competence maintenance. Those
 still require instrumented operational or longitudinal evidence.
+
+## Addendum: interface north star
+
+The opportunity is a **terminal in the pre-PC sense**: the semantic computer is
+the persistent machine, and the interface is a reconnectable human endpoint to
+it. It may initially resemble an agent conversation, but the transcript is only
+a view over durable work; closing it does not end the task or erase the state.
+
+Build outward from the kernel through a transport-independent semantic terminal
+protocol, then render the smallest familiar interface over it. Keep typed
+semantic state and untrusted terminal output separate. A terminal-emulation
+engine such as `libghostty` may supply the compatibility plane for shells and
+existing TUIs, but it must not define the machine or become its source of truth.
+
+The native semantics are: a message is an instruction; a response is an
+attributed processor artifact; a tool call is a proposed effect; approval is a
+capability grant; context is a temporary projection; memory is durable machine
+state; and completion is an accepted transition. Build the coherent path
+directly and let implementation walls produce the next questions; this is a
+north star for making the computer, not another abstract experiment ladder.
