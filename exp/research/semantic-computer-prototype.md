@@ -317,3 +317,41 @@ model-facing experiment surface; Rust is a candidate durable/capability kernel;
 proof tooling should check only stable encoded invariants. Common Lisp, OCaml,
 and Racket are later control-semantics probes, not alternative implementations
 of the whole computer.
+
+## Addendum: benchmark task sources
+
+The initial build should reuse existing task semantics, environments, and
+evaluators. The semantic computer is an alternate execution adapter: task data
+is mounted as durable state, while the upstream evaluator remains the acceptance
+oracle. Because this changes task presentation, results must be paired with the
+benchmark's native harness rather than reported as raw-model leaderboard scores.
+
+- **[AppWorld](https://github.com/StonyBrookNLP/appworld):** the closest match
+  to the architecture. Mount its task-specific databases, identity, time, and
+  API documentation; use its APIs as effects and its state-based tests to check
+  correct outcomes and collateral damage.
+- **[GraphWalks](https://huggingface.co/datasets/openai/graphwalks) and
+  [OOLONG](https://huggingface.co/datasets/oolongbench/oolong-synth):** isolate
+  the memory hierarchy. Mount graphs or records as structured state and measure
+  projection, working-set scaling, repeated access, and deterministic
+  preprocessing against exact or published evaluators.
+- **[Terminal-Bench 2.1](https://hub.harborframework.com/datasets/terminal-bench/terminal-bench-2-1/latest)
+  through [Harbor](https://github.com/harbor-framework/harbor):** test general
+  computation across filesystems, processes, compilation, and heterogeneous
+  tools. Keep its containers, resource limits, and executable verifiers fixed;
+  use published trajectories for exploratory failure analysis, not training.
+- **[τ-bench](https://github.com/sierra-research/tau2-bench):** test policy,
+  authority, admissibility, mutable tools, and sequential interaction. Pin the
+  task and grader version and repeat trials because the user simulator adds
+  variance.
+- **[SWE-bench Verified](https://github.com/SWE-bench/SWE-bench):** later test
+  repository-scale diagnosis, code mutation, test-gated acceptance, and theory
+  preservation. It is valuable but substantially heavier and narrower than the
+  first four.
+
+Suggested order: **AppWorld → GraphWalks/OOLONG → Terminal-Bench → τ-bench →
+SWE-bench Verified**. Use train, development, or generated task families while
+building routing and promotion; keep test splits frozen. These benchmarks can
+test the computer's mechanisms, but not establish real-workload escalation
+locality, long-term promotion economics, or human competence maintenance. Those
+still require instrumented operational or longitudinal evidence.
